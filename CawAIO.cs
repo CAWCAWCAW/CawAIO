@@ -20,7 +20,7 @@ namespace CawAIO
     {
         public override Version Version
         {
-            get { return new Version("1.0"); }
+            get { return new Version("1.1"); }
         }
 
         public override string Name
@@ -45,20 +45,21 @@ namespace CawAIO
         }
         public override void Initialize()
         {
-            TShockAPI.Commands.ChatCommands.Add(new Command("permissions.smack", Smack, "smack"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("permissions.bunny", Bunny, "bunny"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("caw.smack", Smack, "smack"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("caw.bunny", Bunny, "bunny"));
             TShockAPI.Commands.ChatCommands.Add(new Command("tshock.world.sethalloween", Forcehalloween, "forcehalloween"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("permissions.ownercast", Cawcast, "cc", "oc"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("permissions.gamble", Gamble, "gamble"));
-            //TShockAPI.Commands.ChatCommands.Add(new Command("cawaio.reload", Reload_Config, "creload"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("permissions.randomtp", randomtp, "randomtp", "rtp"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("permissions.randommaptp", randommaptp, "randommaptp", "rmtp"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("permissions.monstergamble", MonsterGamble, "monstergamble", "mg"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("permissions.jester", Jester, "jester", "j"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("permissions.townnpc", townnpc, "townnpc"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("caw.ownercast", Cawcast, "cc", "oc"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("caw.gamble", Gamble, "gamble"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("caw.reload", Reload_Config, "creload"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("caw.randomtp", randomtp, "randomtp", "rtp"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("caw.randommaptp", randommaptp, "randommaptp", "rmtp"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("caw.monstergamble", MonsterGamble, "monstergamble", "mg"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("caw.jester", Jester, "jester", "j"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("caw.townnpc", townnpc, "townnpc"));
             ServerApi.Hooks.ServerChat.Register(this, OnChat);
             ServerApi.Hooks.ServerChat.Register(this, Bannedwords);
-            //CreateConfig();
+            ServerApi.Hooks.GameUpdate.Register(this, Configevents);
+            CreateConfig();
         }
         protected override void Dispose(bool disposing)
         {
@@ -66,6 +67,7 @@ namespace CawAIO
             {
                 ServerApi.Hooks.ServerChat.Deregister(this, OnChat);
                 ServerApi.Hooks.ServerChat.Deregister(this, Bannedwords);
+                ServerApi.Hooks.GameUpdate.Deregister(this, Configevents);
             }
             base.Dispose(disposing);
         }
@@ -131,7 +133,7 @@ namespace CawAIO
             args.Player.Teleport(ts.TileX * 16, ts.TileY * 16);
         }
 
-        //private static Config config;
+        private static Config config;
 
         private static void Jester(CommandArgs args)
         {
@@ -324,6 +326,19 @@ namespace CawAIO
                 Log.Info(args.Player.Name + " smacked " + plr.Name);
             }
         }
+        private static void Configevents(EventArgs args)
+        {
+            if (config.ForceHalloween)
+            {
+                TShock.Config.ForceHalloween = true;
+                Main.checkHalloween();
+            }
+            else
+            {
+                TShock.Config.ForceHalloween = false;
+                Main.checkHalloween();
+            }
+        }
 
         private static void Forcehalloween(CommandArgs args)
         {
@@ -383,28 +398,40 @@ namespace CawAIO
                 args.Handled = true;
                 return;
             }
-            if (args.Text.ToLower().Contains("yolo") || args.Text.ToLower().Contains("YOLO") || args.Text.ToLower().Contains("Y.O.L.O") || args.Text.ToLower().Contains("Yolo") || args.Text.ToLower().Contains("swag") || args.Text.ToLower().Contains("SWAG") || args.Text.ToLower().Contains("Swag"))
+            if (args.Text.ToLower().Contains("yolo") || args.Text.ToLower().Contains("y.olo") || args.Text.ToLower().Contains("y.o.l.o") || args.Text.ToLower().Contains("swag") || args.Text.ToLower().Contains("s.w.a.g"))
             {
-                args.Handled = true;
                 if (player.Group.HasPermission("permissions.staff"))
                 {
                     args.Handled = false;
                 }
                 else
                 {
+                    switch (config.Action)
+                    {
+                        case "kick":
+                    args.Handled = true;
                     TShock.Utils.Kick(player, "This is a yolo and swag free server.", true, true);
                     TShock.Utils.Broadcast("The server has force kicked " + player.Name + " for saying yolo or swag.", Color.Yellow);
+                    break;
+                        case "ignore":
+                    args.Handled = true;
+                    player.SendErrorMessage("Your message has been ignored, you are not allowed to say yolo or swag on this server.");
+                    break;
+                        case "donothing":
+                    args.Handled = false;
+                    break;
                 }
+                 }
             }
-            if (args.Text.StartsWith("/buff shadow d"))
+            if (args.Text.StartsWith("/buff shadow d") || args.Text.StartsWith("/buff \"shadow d"))
             {
-                args.Handled = true;
                 if (player.Group.HasPermission("permissions.staff"))
                 {
                     args.Handled = false;
                 }
                 else
                 {
+                    args.Handled = true;
                     player.SendMessage("Shadow Dodge is not a buff you can use on this server through commands.", Color.Yellow);
                 }
             }
@@ -427,7 +454,7 @@ namespace CawAIO
                 args.Handled = true;
                 string[] words = args.Text.Split();
                 string cmd = words[0].Substring(1);
-                words[0] = "(" + player.Group + ") " + player.Name + ":";
+                words[0] = player.Group.Prefix + player.Name + ":";
                 switch (cmd)
                 {
                     case "red":
@@ -458,78 +485,79 @@ namespace CawAIO
             TSPlayer.All.SendMessage(message, color);
         }
 
-        //private static void CreateConfig()
-        //{
-        //    string filepath = Path.Combine(TShock.SavePath, "CawAIO.json");
-        //    try
-        //    {
-        //        using (var stream = new FileStream(filepath, FileMode.Create, FileAccess.Write, FileShare.Write))
-        //        {
-        //            using (var sr = new StreamWriter(stream))
-        //            {
-        //                config = new Config();
-        //                var configString = JsonConvert.SerializeObject(config, Formatting.Indented);
-        //                sr.Write(configString);
-        //            }
-        //            stream.Close();
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Log.ConsoleError(ex.Message);
-        //        config = new Config();
-        //    }
-        //}
+        private static void CreateConfig()
+        {
+            string filepath = Path.Combine(TShock.SavePath, "CawAIO.json");
+            try
+            {
+                using (var stream = new FileStream(filepath, FileMode.Create, FileAccess.Write, FileShare.Write))
+                {
+                    using (var sr = new StreamWriter(stream))
+                    {
+                        config = new Config();
+                        var configString = JsonConvert.SerializeObject(config, Formatting.Indented);
+                        sr.Write(configString);
+                    }
+                    stream.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.ConsoleError(ex.Message);
+                config = new Config();
+            }
+        }
 
-        //private static bool ReadConfig()
-        //{
-        //    string filepath = Path.Combine(TShock.SavePath, "CawAIO.json");
-        //    try
-        //    {
-        //        if (File.Exists(filepath))
-        //        {
-        //            using (var stream = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.Read))
-        //            {
-        //                using (var sr = new StreamReader(stream))
-        //                {
-        //                    var configString = sr.ReadToEnd();
-        //                    config = JsonConvert.DeserializeObject<Config>(configString);
-        //                }
-        //                stream.Close();
-        //            }
-        //            return true;
-        //        }
-        //        else
-        //        {
-        //            Log.ConsoleError("CawAIO config not found. Creating new one...");
-        //            CreateConfig();
-        //            return false;
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Log.ConsoleError(ex.Message);
-        //    }
-        //    return false;
-        //}
+        private static bool ReadConfig()
+        {
+            string filepath = Path.Combine(TShock.SavePath, "CawAIO.json");
+            try
+            {
+                if (File.Exists(filepath))
+                {
+                    using (var stream = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        using (var sr = new StreamReader(stream))
+                        {
+                            var configString = sr.ReadToEnd();
+                            config = JsonConvert.DeserializeObject<Config>(configString);
+                        }
+                        stream.Close();
+                    }
+                    return true;
+                }
+                else
+                {
+                    Log.ConsoleError("CawAIO config not found. Creating new one...");
+                    CreateConfig();
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.ConsoleError(ex.Message);
+            }
+            return false;
+        }
 
-        //class Config
-        //{
-        //    public bool GiveSEconomyCurrency = false;
-        //    public int CurrencyAmount = 100;
-        //}
+        public class Config
+        {
+            public string Action = "ignore";
+            public bool ForceHalloween = false;
+        }
 
-        //private void Reload_Config(CommandArgs args)
-        //{
-        //    if (ReadConfig())
-        //    {
-        //        args.Player.SendMessage("CawAIO config reloaded sucessfully.", Color.Green);
-        //    }
-        //    else
-        //    {
-        //        args.Player.SendErrorMessage("CawAIO config reloaded unsucessfully. Check logs for details.");
-        //    }
-        //}
+        private void Reload_Config(CommandArgs args)
+        {
+            if (ReadConfig())
+            {
+                args.Player.SendMessage("CawAIO config reloaded sucessfully.", Color.Yellow);
+            }
+            else
+            {
+                args.Player.SendErrorMessage("CawAIO config reloaded unsucessfully. Check logs for details.");
+                args.Player.SendErrorMessage("Creating new config.", Color.Yellow);
+            }
+        }
 
     }
 }
