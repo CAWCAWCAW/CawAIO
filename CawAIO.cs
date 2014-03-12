@@ -20,7 +20,7 @@ namespace CawAIO
     {
         public override Version Version
         {
-            get { return new Version("1.1"); }
+            get { return new Version("1.2"); }
         }
 
         public override string Name
@@ -56,10 +56,12 @@ namespace CawAIO
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.monstergamble", MonsterGamble, "monstergamble", "mg"));
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.jester", Jester, "jester", "j"));
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.townnpc", townnpc, "townnpc"));
+            //TShockAPI.Commands.ChatCommands.Add(new Command("caw.toggle", toggle, "duckhunttoggle"));
             ServerApi.Hooks.ServerChat.Register(this, OnChat);
             ServerApi.Hooks.ServerChat.Register(this, Bannedwords);
             ServerApi.Hooks.GameUpdate.Register(this, Configevents);
-            CreateConfig();
+            //ServerApi.Hooks.GameUpdate.Register(this, OnUpdatetest);
+            ReadConfig();
         }
         protected override void Dispose(bool disposing)
         {
@@ -68,6 +70,7 @@ namespace CawAIO
                 ServerApi.Hooks.ServerChat.Deregister(this, OnChat);
                 ServerApi.Hooks.ServerChat.Deregister(this, Bannedwords);
                 ServerApi.Hooks.GameUpdate.Deregister(this, Configevents);
+                //ServerApi.Hooks.GameUpdate.Deregister(this, OnUpdatetest);
             }
             base.Dispose(disposing);
         }
@@ -123,14 +126,14 @@ namespace CawAIO
                 return;
             }
             Random rnd = new Random();
-            TSPlayer ts = TShock.Players[rnd.Next(0, TShock.Utils.ActivePlayers() - 1)];
-            if (ts.TPAllow && !args.Player.Group.HasPermission("permissions.tpallow"))
+            TSPlayer ts = TShock.Players[rnd.Next(0,TShock.Utils.ActivePlayers()-1)];
+            if (!ts.TPAllow && !args.Player.Group.HasPermission("permissions.tpall"))
             {
                 args.Player.SendErrorMessage(ts.Name + " has prevented users from teleporting to them.");
                 ts.SendInfoMessage(args.Player.Name + " attempted to teleport to you.");
                 return;
             }
-            args.Player.Teleport(ts.TileX * 16, ts.TileY * 16);
+            args.Player.Teleport(ts.TileX * 16, ts.TileY * 16);   
         }
 
         private static Config config;
@@ -200,44 +203,54 @@ namespace CawAIO
             var selectedPlayer = SEconomyPlugin.GetEconomyPlayerByBankAccountNameSafe(args.Player.Name);
             var playeramount = selectedPlayer.BankAccount.Balance;
             Money moneyamount = -50000;
-
-            if (!args.Player.Group.HasPermission("bank.worldtransfer"))
+            if (config.SEconomy)
             {
-                if (playeramount > -moneyamount && (monsteramount == 22 || monsteramount == 17 || monsteramount == 18 || monsteramount == 37 || monsteramount == 38 || monsteramount == 19 || monsteramount == 20 || monsteramount == 37 || monsteramount == 54 || monsteramount == 68 || monsteramount == 124 || monsteramount == 107 || monsteramount == 108 || monsteramount == 113 || monsteramount == 142 || monsteramount == 178 || monsteramount == 207 || monsteramount == 208 || monsteramount == 209 || monsteramount == 227 || monsteramount == 228 || monsteramount == 160 || monsteramount == 229 || monsteramount == 353 || monsteramount == 368))
                 {
-                    int monsteramount2 = random.Next(1, Main.maxNPCs);
-                    NPC npcs2 = TShock.Utils.GetNPCById(monsteramount2);
-                    TSPlayer.Server.SpawnNPC(npcs2.type, npcs2.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-                    TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs2.name, amount));
-                    args.Player.SendSuccessMessage("You have lost 5g for monster gambling.");
-                    SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, amount, Journalpayment, string.Format("5g has been lost for monster gambling", args.Player.Name), string.Format("CawAIO: " + "Monster Gambling"));
-                }
-                else
-                {
-                    TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-                    TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
-                    args.Player.SendSuccessMessage("You have lost 5g for monster gambling.");
-                    SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, amount, Journalpayment, string.Format("5g has been lost for monster gambling", args.Player.Name), string.Format("CawAIO: " + "Monster Gambling"));
+                    if (!args.Player.Group.HasPermission("bank.worldtransfer"))
+                    {
+                        if (playeramount > -moneyamount && (monsteramount == 22 || monsteramount == 17 || monsteramount == 18 || monsteramount == 37 || monsteramount == 38 || monsteramount == 19 || monsteramount == 20 || monsteramount == 37 || monsteramount == 54 || monsteramount == 68 || monsteramount == 124 || monsteramount == 107 || monsteramount == 108 || monsteramount == 113 || monsteramount == 142 || monsteramount == 178 || monsteramount == 207 || monsteramount == 208 || monsteramount == 209 || monsteramount == 227 || monsteramount == 228 || monsteramount == 160 || monsteramount == 229 || monsteramount == 353 || monsteramount == 368))
+                        {
+                            int monsteramount2 = random.Next(1, Main.maxNPCs);
+                            NPC npcs2 = TShock.Utils.GetNPCById(monsteramount2);
+                            TSPlayer.Server.SpawnNPC(npcs2.type, npcs2.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
+                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs2.name, amount));
+                            args.Player.SendSuccessMessage("You have lost 5g for monster gambling.");
+                            SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, amount, Journalpayment, string.Format("5g has been lost for monster gambling", args.Player.Name), string.Format("CawAIO: " + "Monster Gambling"));
+                        }
+                        else
+                        {
+                            TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
+                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
+                            args.Player.SendSuccessMessage("You have lost 5g for monster gambling.");
+                            SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, amount, Journalpayment, string.Format("5g has been lost for monster gambling", args.Player.Name), string.Format("CawAIO: " + "Monster Gambling"));
+                        }
+                    }
+                    else
+                    {
+                        if (args.Player.Group.HasPermission("bank.worldtransfer") && (monsteramount == 22 || monsteramount == 17 || monsteramount == 18 || monsteramount == 37 || monsteramount == 38 || monsteramount == 19 || monsteramount == 20 || monsteramount == 37 || monsteramount == 54 || monsteramount == 68 || monsteramount == 124 || monsteramount == 107 || monsteramount == 108 || monsteramount == 113 || monsteramount == 142 || monsteramount == 178 || monsteramount == 207 || monsteramount == 208 || monsteramount == 209 || monsteramount == 227 || monsteramount == 228 || monsteramount == 160 || monsteramount == 229 || monsteramount == 353 || monsteramount == 368))
+                        {
+                            int monsteramount2 = random.Next(1, Main.maxNPCs);
+                            NPC npcs2 = TShock.Utils.GetNPCById(monsteramount2);
+                            TSPlayer.Server.SpawnNPC(npcs2.type, npcs2.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
+                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs2.name, amount));
+                            args.Player.SendSuccessMessage("You have lost nothing for monster gambling.");
+                        }
+                        else
+                        {
+                            TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
+                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
+                            args.Player.SendSuccessMessage("You have lost nothing for monster gambling.");
+                        }
+                    }
                 }
             }
             else
             {
-                if (args.Player.Group.HasPermission("bank.worldtransfer") && (monsteramount == 22 || monsteramount == 17 || monsteramount == 18 || monsteramount == 37 || monsteramount == 38 || monsteramount == 19 || monsteramount == 20 || monsteramount == 37 || monsteramount == 54 || monsteramount == 68 || monsteramount == 124 || monsteramount == 107 || monsteramount == 108 || monsteramount == 113 || monsteramount == 142 || monsteramount == 178 || monsteramount == 207 || monsteramount == 208 || monsteramount == 209 || monsteramount == 227 || monsteramount == 228 || monsteramount == 160 || monsteramount == 229 || monsteramount == 353 || monsteramount == 368))
-                {
-                    int monsteramount2 = random.Next(1, Main.maxNPCs);
-                    NPC npcs2 = TShock.Utils.GetNPCById(monsteramount2);
-                    TSPlayer.Server.SpawnNPC(npcs2.type, npcs2.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-                    TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs2.name, amount));
-                    args.Player.SendSuccessMessage("You have lost nothing for monster gambling.");
-                }
-                else
-                {
-                    TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-                    TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
-                    args.Player.SendSuccessMessage("You have lost nothing for monster gambling.");
-                }
+                TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
+                TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
             }
         }
+
 
         private static void Gamble(CommandArgs args)
         {
@@ -251,44 +264,73 @@ namespace CawAIO
             Money amount = -50000;
             var Journalpayment = Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToSender;
             var playeramount = selectedPlayer.BankAccount.Balance;
-            if (args.Player != null && selectedPlayer != null)
+            if (config.SEconomy)
             {
-                if (itemAmount > item.maxStack)
                 {
-                    itemAmount = item.maxStack;
-                }
-                if (playeramount > -amount)
-                {
-
-                    if (args.Player.InventorySlotAvailable || item.name.Contains("Coin"))
+                    if (args.Player != null && selectedPlayer != null)
                     {
-                        if (!args.Player.Group.HasPermission("bank.worldtransfer"))
+                        if (itemAmount > item.maxStack)
                         {
-                            item.prefix = (byte)prefixId;
-                            args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
-                            SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, amount, Journalpayment, string.Format("5g has been lost for gambling", args.Player.Name), string.Format("CawAIO: " + "Gambling"));
-                            args.Player.SendSuccessMessage("You have lost 5 gold and gambled {0} {1}(s).", itemAmount, item.AffixName());
+                            itemAmount = item.maxStack;
+                        }
+                        if (playeramount > -amount)
+                        {
+
+                            if (args.Player.InventorySlotAvailable || item.name.Contains("Coin"))
+                            {
+                                if (!args.Player.Group.HasPermission("bank.worldtransfer"))
+                                {
+                                    item.prefix = (byte)prefixId;
+                                    args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
+                                    SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, amount, Journalpayment, string.Format("5g has been lost for gambling", args.Player.Name), string.Format("CawAIO: " + "Gambling"));
+                                    args.Player.SendSuccessMessage("You have lost 5 gold and gambled {0} {1}(s).", itemAmount, item.AffixName());
+                                }
+                                else
+                                {
+                                    item.prefix = (byte)prefixId;
+                                    args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
+                                    args.Player.SendSuccessMessage("You have lost no gold and gambled {0} {1}(s).", itemAmount, item.AffixName());
+                                }
+                            }
+                            else
+                            {
+                                args.Player.SendErrorMessage("Your inventory seems full.");
+                            }
                         }
                         else
                         {
-                            item.prefix = (byte)prefixId;
-                            args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
-                            args.Player.SendSuccessMessage("You have lost no gold and gambled {0} {1}(s).", itemAmount, item.AffixName());
+                            args.Player.SendErrorMessage("You need 5 gold to gamble, you have {0}.", selectedPlayer.BankAccount.Balance);
                         }
                     }
                     else
                     {
-                        args.Player.SendErrorMessage("Your inventory seems full.");
+                        args.Player.SendErrorMessage("The server could not find a valid bank account for the username {0}", args.Player.Name);
                     }
-                }
-                else
-                {
-                    args.Player.SendErrorMessage("You need 5 gold to gamble, you have {0}.", selectedPlayer.BankAccount.Balance);
                 }
             }
             else
             {
-                args.Player.SendErrorMessage("The server could not find a valid bank account for the username {0}", args.Player.Name);
+                if (args.Player != null && selectedPlayer != null)
+                {
+                    if (itemAmount > item.maxStack)
+                    {
+                        itemAmount = item.maxStack;
+                    }
+                    if (playeramount > -amount)
+                    {
+
+                        if (args.Player.InventorySlotAvailable || item.name.Contains("Coin"))
+                        {
+                                item.prefix = (byte)prefixId;
+                                args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
+                                args.Player.SendSuccessMessage("You have gambled {0} {1}(s).", itemAmount, item.AffixName());
+                        }
+                        else
+                        {
+                            args.Player.SendErrorMessage("Your inventory seems full.");
+                        }
+                    }
+                }
             }
         }
 
@@ -326,6 +368,45 @@ namespace CawAIO
                 Log.Info(args.Player.Name + " smacked " + plr.Name);
             }
         }
+
+        //private DateTime LastCheck = DateTime.UtcNow;
+        //private int Duckhunt = 10;
+        //private bool DuckhuntToggle = config.DuckhuntToggle;
+        //public void OnUpdatetest(EventArgs args)
+        //{
+        //    if (DuckhuntToggle && ((DateTime.UtcNow - LastCheck).TotalSeconds >= 1))
+        //    {
+        //        LastCheck = DateTime.UtcNow;
+        //        if (Duckhunt == config.GambleCooldown)
+        //        {
+        //            TSPlayer.All.SendInfoMessage("This is a test");
+        //        }
+        //        else if (Duckhunt == config.DuckhuntTimer + 10)
+        //        {
+        //            spawnducks();
+        //        }
+        //    }
+        //}
+        //private void toggle(CommandArgs args)
+        //{
+        //                DuckhuntToggle = !DuckhuntToggle;
+        //                if (DuckhuntToggle == true)
+        //                {
+        //                args.Player.SendMessage("Boss battles now: " + ((DuckhuntToggle) ? "Enabled" : "Disabled"), Color.Aquamarine);
+        //                }
+        //}
+        //private TShockAPI.DB.Region arenaregion = new TShockAPI.DB.Region();
+        //private void spawnducks()
+        //{
+        //    arenaregion = TShock.Regions.GetRegionByName("duckarena");
+        //    int arenaX = arenaregion.Area.X + (arenaregion.Area.Width / 2);
+        //    int arenaY = arenaregion.Area.Y + (arenaregion.Area.Height / 2);
+        //    TSPlayer.All.SendInfoMessage("The ducks fly tonight.");
+        //    TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(362).type, TShock.Utils.GetNPCById(362).name, 20, arenaX, arenaY, (arenaregion.Area.Width / 2), (arenaregion.Area.Height / 2));
+             
+        //}
+
+
         private static void Configevents(EventArgs args)
         {
             if (config.ForceHalloween)
@@ -544,6 +625,12 @@ namespace CawAIO
         {
             public string Action = "ignore";
             public bool ForceHalloween = false;
+            public bool SEconomy = false;
+            //public bool DuckhuntToggle = false;
+            //public int MonsterGambleCooldown = 0;
+            //public int GambleCooldown = 0;
+            //public int DuckhuntTimer = 10;
+
         }
 
         private void Reload_Config(CommandArgs args)
