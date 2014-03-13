@@ -20,7 +20,7 @@ namespace CawAIO
     {
         public override Version Version
         {
-            get { return new Version("1.2"); }
+            get { return new Version("1.3"); }
         }
 
         public override string Name
@@ -126,14 +126,14 @@ namespace CawAIO
                 return;
             }
             Random rnd = new Random();
-            TSPlayer ts = TShock.Players[rnd.Next(0,TShock.Utils.ActivePlayers()-1)];
+            TSPlayer ts = TShock.Players[rnd.Next(0, TShock.Utils.ActivePlayers() - 1)];
             if (!ts.TPAllow && !args.Player.Group.HasPermission("permissions.tpall"))
             {
                 args.Player.SendErrorMessage(ts.Name + " has prevented users from teleporting to them.");
                 ts.SendInfoMessage(args.Player.Name + " attempted to teleport to you.");
                 return;
             }
-            args.Player.Teleport(ts.TileX * 16, ts.TileY * 16);   
+            args.Player.Teleport(ts.TileX * 16, ts.TileY * 16);
         }
 
         private static Config config;
@@ -152,7 +152,7 @@ namespace CawAIO
                     int monsteramount = 303;
                     NPC npcs = TShock.Utils.GetNPCById(monsteramount);
                     TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-                    TSPlayer.All.SendSuccessMessage(string.Format("{0} has spawnned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
+                    TSPlayer.All.SendSuccessMessage(string.Format("{0} has spawned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
                     break;
                 case "400pigron":
                     int monsteramountp = 170;
@@ -162,14 +162,14 @@ namespace CawAIO
                     NPC npcs2 = TShock.Utils.GetNPCById(monsteramountp1);
                     TSPlayer.Server.SpawnNPC(npcs1.type, npcs1.name, amount1, args.Player.TileX, args.Player.TileY, 50, 20);
                     TSPlayer.Server.SpawnNPC(npcs2.type, npcs2.name, amount1, args.Player.TileX, args.Player.TileY, 50, 20);
-                    TSPlayer.All.SendSuccessMessage(string.Format("{0} has spawnned {1} {2} time(s).", args.Player.Name, npcs1.name, amount1));
+                    TSPlayer.All.SendSuccessMessage(string.Format("{0} has spawned {1} {2} time(s).", args.Player.Name, npcs1.name, amount1));
                     break;
                 case "50kings":
                     int amountk = 50;
                     int monsteramountk = 50;
                     NPC npcsk = TShock.Utils.GetNPCById(monsteramountk);
                     TSPlayer.Server.SpawnNPC(npcsk.type, npcsk.name, amountk, args.Player.TileX, args.Player.TileY, 50, 20);
-                    TSPlayer.All.SendSuccessMessage(string.Format("{0} has spawnned {1} {2} time(s).", args.Player.Name, npcsk.name, amountk));
+                    TSPlayer.All.SendSuccessMessage(string.Format("{0} has spawned {1} {2} time(s).", args.Player.Name, npcsk.name, amountk));
                     break;
                 case "allbosses":
                     TSPlayer.Server.SetTime(false, 0.0);
@@ -188,7 +188,7 @@ namespace CawAIO
                     TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(344).type, TShock.Utils.GetNPCById(344).name, 1, args.Player.TileX, args.Player.TileY, 50, 20);
                     TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(345).type, TShock.Utils.GetNPCById(345).name, 1, args.Player.TileX, args.Player.TileY, 50, 20);
                     TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(346).type, TShock.Utils.GetNPCById(346).name, 1, args.Player.TileX, args.Player.TileY, 50, 20);
-                    TSPlayer.All.SendSuccessMessage(string.Format("{0} has spawnned every boss.", args.Player.Name));
+                    TSPlayer.All.SendSuccessMessage(string.Format("{0} has spawned every boss.", args.Player.Name));
                     break;
             }
         }
@@ -200,9 +200,9 @@ namespace CawAIO
             int amount = random.Next(1, 50);
             NPC npcs = TShock.Utils.GetNPCById(monsteramount);
             var Journalpayment = Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToSender;
-            var selectedPlayer = SEconomyPlugin.GetEconomyPlayerByBankAccountNameSafe(args.Player.Name);
+            var selectedPlayer = SEconomyPlugin.GetEconomyPlayerByBankAccountNameSafe(args.Player.UserAccountName);
             var playeramount = selectedPlayer.BankAccount.Balance;
-            Money moneyamount = -50000;
+            Money moneyamount = -config.MonsterGamlbeCost;
             if (config.SEconomy)
             {
                 {
@@ -213,15 +213,15 @@ namespace CawAIO
                             int monsteramount2 = random.Next(1, Main.maxNPCs);
                             NPC npcs2 = TShock.Utils.GetNPCById(monsteramount2);
                             TSPlayer.Server.SpawnNPC(npcs2.type, npcs2.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs2.name, amount));
-                            args.Player.SendSuccessMessage("You have lost 5g for monster gambling.");
+                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name, npcs2.name, amount));
+                            args.Player.SendSuccessMessage("You have lost {0} for monster gambling.", -amount);
                             SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, amount, Journalpayment, string.Format("5g has been lost for monster gambling", args.Player.Name), string.Format("CawAIO: " + "Monster Gambling"));
                         }
                         else
                         {
                             TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
-                            args.Player.SendSuccessMessage("You have lost 5g for monster gambling.");
+                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
+                            args.Player.SendSuccessMessage("You have lost {0} for monster gambling.", -amount);
                             SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, amount, Journalpayment, string.Format("5g has been lost for monster gambling", args.Player.Name), string.Format("CawAIO: " + "Monster Gambling"));
                         }
                     }
@@ -232,13 +232,13 @@ namespace CawAIO
                             int monsteramount2 = random.Next(1, Main.maxNPCs);
                             NPC npcs2 = TShock.Utils.GetNPCById(monsteramount2);
                             TSPlayer.Server.SpawnNPC(npcs2.type, npcs2.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs2.name, amount));
+                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name, npcs2.name, amount));
                             args.Player.SendSuccessMessage("You have lost nothing for monster gambling.");
                         }
                         else
                         {
                             TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
+                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
                             args.Player.SendSuccessMessage("You have lost nothing for monster gambling.");
                         }
                     }
@@ -247,7 +247,7 @@ namespace CawAIO
             else
             {
                 TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-                TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawnned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
+                TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
             }
         }
 
@@ -260,8 +260,8 @@ namespace CawAIO
             int itemName = random.Next(1, Main.maxItems);
             Item item;
             item = TShock.Utils.GetItemById(itemName);
-            var selectedPlayer = SEconomyPlugin.GetEconomyPlayerByBankAccountNameSafe(args.Player.Name);
-            Money amount = -50000;
+            var selectedPlayer = SEconomyPlugin.GetEconomyPlayerByBankAccountNameSafe(args.Player.UserAccountName);
+            Money amount = -config.GambleCost;
             var Journalpayment = Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToSender;
             var playeramount = selectedPlayer.BankAccount.Balance;
             if (config.SEconomy)
@@ -283,13 +283,20 @@ namespace CawAIO
                                     item.prefix = (byte)prefixId;
                                     args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
                                     SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, amount, Journalpayment, string.Format("5g has been lost for gambling", args.Player.Name), string.Format("CawAIO: " + "Gambling"));
-                                    args.Player.SendSuccessMessage("You have lost 5 gold and gambled {0} {1}(s).", itemAmount, item.AffixName());
+                                    args.Player.SendSuccessMessage("You have lost {0} gold and gambled {1} {2}(s).", -amount, itemAmount, item.AffixName());
+                                    Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.Red);
+
+                                    if (args.Player.Group.HasPermission("caw.staff"))
+                                    {
+                                        TShockAPI.TSServerPlayer.All.SendInfoMessage("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.Red);
+                                    }
                                 }
                                 else
                                 {
                                     item.prefix = (byte)prefixId;
                                     args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
                                     args.Player.SendSuccessMessage("You have lost no gold and gambled {0} {1}(s).", itemAmount, item.AffixName());
+                                    Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.Red);
                                 }
                             }
                             else
@@ -299,7 +306,7 @@ namespace CawAIO
                         }
                         else
                         {
-                            args.Player.SendErrorMessage("You need 5 gold to gamble, you have {0}.", selectedPlayer.BankAccount.Balance);
+                            args.Player.SendErrorMessage("You need {0} gold to gamble, you have {1}.", amount, selectedPlayer.BankAccount.Balance);
                         }
                     }
                     else
@@ -316,19 +323,30 @@ namespace CawAIO
                     {
                         itemAmount = item.maxStack;
                     }
-                    if (playeramount > -amount)
+                    if (args.Player.InventorySlotAvailable || item.name.Contains("Coin"))
                     {
-
-                        if (args.Player.InventorySlotAvailable || item.name.Contains("Coin"))
+                        if (!args.Player.Group.HasPermission("bank.worldtransfer"))
                         {
-                                item.prefix = (byte)prefixId;
-                                args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
-                                args.Player.SendSuccessMessage("You have gambled {0} {1}(s).", itemAmount, item.AffixName());
+                            item.prefix = (byte)prefixId;
+                            args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
+                            Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.Red);
+
+                            if (args.Player.Group.HasPermission("caw.staff"))
+                            {
+                                TShockAPI.TSServerPlayer.All.SendInfoMessage("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.LightGreen);
+                            }
                         }
                         else
                         {
-                            args.Player.SendErrorMessage("Your inventory seems full.");
+                            item.prefix = (byte)prefixId;
+                            args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
+                            args.Player.SendSuccessMessage("You have lost no gold and gambled {0} {1}(s).", itemAmount, item.AffixName());
+                            Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.Red);
                         }
+                    }
+                    else
+                    {
+                        args.Player.SendErrorMessage("Your inventory seems full.");
                     }
                 }
             }
@@ -371,7 +389,7 @@ namespace CawAIO
 
         //private DateTime LastCheck = DateTime.UtcNow;
         //private int Duckhunt = 10;
-        //private bool DuckhuntToggle = config.DuckhuntToggle;
+        //private bool DuckhuntToggle = false;
         //public void OnUpdatetest(EventArgs args)
         //{
         //    if (DuckhuntToggle && ((DateTime.UtcNow - LastCheck).TotalSeconds >= 1))
@@ -384,16 +402,18 @@ namespace CawAIO
         //        else if (Duckhunt == config.DuckhuntTimer + 10)
         //        {
         //            spawnducks();
+        //            TSPlayer.All.SendInfoMessage("test");
         //        }
         //    }
         //}
+
         //private void toggle(CommandArgs args)
         //{
-        //                DuckhuntToggle = !DuckhuntToggle;
-        //                if (DuckhuntToggle == true)
-        //                {
-        //                args.Player.SendMessage("Boss battles now: " + ((DuckhuntToggle) ? "Enabled" : "Disabled"), Color.Aquamarine);
-        //                }
+        //    DuckhuntToggle = !DuckhuntToggle;
+        //    if (DuckhuntToggle == true || DuckhuntToggle == false)
+        //    {
+        //        args.Player.SendMessage("Duckhunt now: " + ((DuckhuntToggle) ? "Enabled" : "Disabled"), Color.Aquamarine);
+        //    }
         //}
         //private TShockAPI.DB.Region arenaregion = new TShockAPI.DB.Region();
         //private void spawnducks()
@@ -403,7 +423,7 @@ namespace CawAIO
         //    int arenaY = arenaregion.Area.Y + (arenaregion.Area.Height / 2);
         //    TSPlayer.All.SendInfoMessage("The ducks fly tonight.");
         //    TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(362).type, TShock.Utils.GetNPCById(362).name, 20, arenaX, arenaY, (arenaregion.Area.Width / 2), (arenaregion.Area.Height / 2));
-             
+
         //}
 
 
@@ -490,30 +510,33 @@ namespace CawAIO
                     switch (config.Action)
                     {
                         case "kick":
-                    args.Handled = true;
-                    TShock.Utils.Kick(player, "This is a yolo and swag free server.", true, true);
-                    TShock.Utils.Broadcast("The server has force kicked " + player.Name + " for saying yolo or swag.", Color.Yellow);
-                    break;
+                            args.Handled = true;
+                            TShock.Utils.Kick(player, "This is a yolo and swag free server.", true, true);
+                            TShock.Utils.Broadcast("The server has force kicked " + player.Name + " for saying yolo or swag.", Color.Yellow);
+                            break;
                         case "ignore":
-                    args.Handled = true;
-                    player.SendErrorMessage("Your message has been ignored, you are not allowed to say yolo or swag on this server.");
-                    break;
+                            args.Handled = true;
+                            player.SendErrorMessage("Your message has been ignored, you are not allowed to say yolo or swag on this server.");
+                            break;
                         case "donothing":
-                    args.Handled = false;
-                    break;
+                            args.Handled = false;
+                            break;
+                    }
                 }
-                 }
             }
-            if (args.Text.StartsWith("/buff shadow d") || args.Text.StartsWith("/buff \"shadow d"))
+            if (config.CanUseBuffShadowDodge)
             {
-                if (player.Group.HasPermission("permissions.staff"))
+                if (args.Text.StartsWith("/buff shadow d") || args.Text.StartsWith("/buff \"shadow d"))
                 {
-                    args.Handled = false;
-                }
-                else
-                {
-                    args.Handled = true;
-                    player.SendMessage("Shadow Dodge is not a buff you can use on this server through commands.", Color.Yellow);
+                    if (player.Group.HasPermission("caw.staff"))
+                    {
+                        args.Handled = false;
+                    }
+                    else
+                    {
+                        args.Handled = true;
+                        player.SendMessage("Shadow Dodge is not a buff you can use on this server through commands.", Color.Yellow);
+                    }
                 }
             }
         }
@@ -585,7 +608,6 @@ namespace CawAIO
             catch (Exception ex)
             {
                 Log.ConsoleError(ex.Message);
-                config = new Config();
             }
         }
 
@@ -626,7 +648,10 @@ namespace CawAIO
             public string Action = "ignore";
             public bool ForceHalloween = false;
             public bool SEconomy = false;
+            public bool CanUseBuffShadowDodge = false;
             //public bool DuckhuntToggle = false;
+            public int GambleCost = 50000;
+            public int MonsterGamlbeCost = 50000;
             //public int MonsterGambleCooldown = 0;
             //public int GambleCooldown = 0;
             //public int DuckhuntTimer = 10;
