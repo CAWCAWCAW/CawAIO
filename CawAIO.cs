@@ -21,7 +21,7 @@ namespace CawAIO
     {
         public override Version Version
         {
-            get { return new Version("1.4"); }
+            get { return new Version("1.5"); }
         }
 
         public override string Name
@@ -61,6 +61,7 @@ namespace CawAIO
             ServerApi.Hooks.ServerChat.Register(this, OnChat);
             ServerApi.Hooks.ServerChat.Register(this, Bannedwords);
             ServerApi.Hooks.GameUpdate.Register(this, Configevents);
+            ServerApi.Hooks.ServerChat.Register(this, Actionfor);
             //ServerApi.Hooks.GameUpdate.Register(this, OnUpdatetest);
             ReadConfig();
         }
@@ -71,6 +72,7 @@ namespace CawAIO
                 ServerApi.Hooks.ServerChat.Deregister(this, OnChat);
                 ServerApi.Hooks.ServerChat.Deregister(this, Bannedwords);
                 ServerApi.Hooks.GameUpdate.Deregister(this, Configevents);
+                ServerApi.Hooks.ServerChat.Deregister(this, Actionfor);
                 //ServerApi.Hooks.GameUpdate.Deregister(this, OnUpdatetest);
             }
             base.Dispose(disposing);
@@ -210,7 +212,7 @@ namespace CawAIO
                 {
                     if (!args.Player.Group.HasPermission("bank.worldtransfer"))
                     {
-                        if (playeramount > moneyamount2 && (monsteramount == 22 || monsteramount == 68|| monsteramount == 17 || monsteramount == 18 || monsteramount == 37 || monsteramount == 38 || monsteramount == 19 || monsteramount == 20 || monsteramount == 37 || monsteramount == 54 || monsteramount == 68 || monsteramount == 124 || monsteramount == 107 || monsteramount == 108 || monsteramount == 113 || monsteramount == 142 || monsteramount == 178 || monsteramount == 207 || monsteramount == 208 || monsteramount == 209 || monsteramount == 227 || monsteramount == 228 || monsteramount == 160 || monsteramount == 229 || monsteramount == 353 || monsteramount == 368))
+                        if (playeramount > moneyamount2 && (monsteramount == 22 || monsteramount == 68 || monsteramount == 17 || monsteramount == 18 || monsteramount == 37 || monsteramount == 38 || monsteramount == 19 || monsteramount == 20 || monsteramount == 37 || monsteramount == 54 || monsteramount == 68 || monsteramount == 124 || monsteramount == 107 || monsteramount == 108 || monsteramount == 113 || monsteramount == 142 || monsteramount == 178 || monsteramount == 207 || monsteramount == 208 || monsteramount == 209 || monsteramount == 227 || monsteramount == 228 || monsteramount == 160 || monsteramount == 229 || monsteramount == 353 || monsteramount == 368))
                         {
                             int monsteramount2 = random.Next(1, Main.maxNPCs);
                             NPC npcs2 = TShock.Utils.GetNPCById(monsteramount2);
@@ -327,22 +329,22 @@ namespace CawAIO
                     }
                     if (args.Player.InventorySlotAvailable || item.name.Contains("Coin"))
                     {
-                            item.prefix = (byte)prefixId;
-                            args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
-                            Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.Red);
+                        item.prefix = (byte)prefixId;
+                        args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
+                        Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.Red);
 
-                            if (args.Player.Group.HasPermission("caw.staff"))
-                            {
-                                TShockAPI.TSServerPlayer.All.SendInfoMessage("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.LightGreen);
-                            }
+                        if (args.Player.Group.HasPermission("caw.staff"))
+                        {
+                            TShockAPI.TSServerPlayer.All.SendInfoMessage("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.LightGreen);
                         }
                     }
-                    else
-                    {
-                        args.Player.SendErrorMessage("Your inventory seems full.");
-                    }
+                }
+                else
+                {
+                    args.Player.SendErrorMessage("Your inventory seems full.");
                 }
             }
+        }
 
         private static void Smack(CommandArgs args)
         {
@@ -491,31 +493,7 @@ namespace CawAIO
                 args.Handled = true;
                 return;
             }
-            if (args.Text.ToLower().Contains("yolo") || args.Text.ToLower().Contains("y.olo") || args.Text.ToLower().Contains("y.o.l.o") || args.Text.ToLower().Contains("swag") || args.Text.ToLower().Contains("s.w.a.g"))
-            {
-                if (player.Group.HasPermission("permissions.staff"))
-                {
-                    args.Handled = false;
-                }
-                else
-                {
-                    switch (config.Action)
-                    {
-                        case "kick":
-                            args.Handled = true;
-                            TShock.Utils.Kick(player, config.KickMessage, true, true);
-                            TShock.Utils.Broadcast("The server has force kicked " + player.Name + " for saying yolo or swag.", Color.Yellow);
-                            break;
-                        case "ignore":
-                            args.Handled = true;
-                            player.SendErrorMessage("Your message has been ignored, you are not allowed to say yolo or swag on this server.");
-                            break;
-                        case "donothing":
-                            args.Handled = false;
-                            break;
-                    }
-                }
-            }
+
             if (config.CanUseBuffShadowDodge)
             {
                 if (args.Text.ToLower().StartsWith("/buff shadow d") || args.Text.ToLower().StartsWith("/buff \"shadow d") || args.Text.ToLower().StartsWith("/buff 59"))
@@ -581,6 +559,36 @@ namespace CawAIO
             TSPlayer.All.SendMessage(message, color);
         }
 
+        public void Actionfor(ServerChatEventArgs args)
+        {
+            var player = TShock.Players[args.Who];
+            foreach (string Word in config.ActionAboveForWords)
+            {
+                if (player.Group.HasPermission("permissions.staff"))
+                {
+                    args.Handled = false;
+                }
+
+                else if (args.Text.ToLower().Contains(Word))
+                {
+                    switch (config.Action)
+                    {
+                        case "kick":
+                            args.Handled = true;
+                            TShock.Utils.Kick(player, config.KickMessage, true, true);
+                            break;
+                        case "ignore":
+                            args.Handled = true;
+                            player.SendErrorMessage("Your message has been ignored, you have said a banned word.");
+                            break;
+                        case "donothing":
+                            args.Handled = false;
+                            break;
+                    }
+                }
+            }
+        }
+
         private static void CreateConfig()
         {
             string filepath = Path.Combine(TShock.SavePath, "CawAIO.json");
@@ -644,10 +652,11 @@ namespace CawAIO
             //public bool DuckhuntToggle = false;
             public int GambleCost = 50000;
             public int MonsterGambleCost = 50000;
-            public string KickMessage = "This is a yolo and swag free server.";
+            public string KickMessage = "You have said a banned word.";
             //public int MonsterGambleCooldown = 0;
             //public int GambleCooldown = 0;
             //public int DuckhuntTimer = 10;
+            public string[] ActionAboveForWords = { "yolo", "swag", "can i be staff", "can i be admin" };
 
         }
 
