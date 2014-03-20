@@ -21,7 +21,7 @@ namespace CawAIO
     {
         public override Version Version
         {
-            get { return new Version("1.5.1"); }
+            get { return new Version("1.5.2"); }
         }
 
         public override string Name
@@ -529,7 +529,7 @@ namespace CawAIO
 
             if (config.CanUseBuffShadowDodge)
             {
-                if (args.Text.ToLower().StartsWith("/buff shadow d") || args.Text.ToLower().StartsWith("/buff \"shadow d") || args.Text.ToLower().StartsWith("/buff 59"))
+                if (args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("shadow d") || args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("\"shadow d") || args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("59"))
                 {
                     if (player.Group.HasPermission("caw.staff"))
                     {
