@@ -21,7 +21,7 @@ namespace CawAIO
     {
         public override Version Version
         {
-            get { return new Version("1.6"); }
+            get { return new Version("1.6.1"); }
         }
 
         public override string Name
@@ -65,7 +65,6 @@ namespace CawAIO
             //ServerApi.Hooks.GameUpdate.Register(this, OnUpdatetest);
             ReadConfig();
         }
-        private Timer Update = new Timer();
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -182,6 +181,7 @@ namespace CawAIO
                     TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(65).type, TShock.Utils.GetNPCById(65).name, 1, args.Player.TileX, args.Player.TileY, 50, 20);
                     TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(125).type, TShock.Utils.GetNPCById(125).name, 1, args.Player.TileX, args.Player.TileY, 50, 20);
                     TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(126).type, TShock.Utils.GetNPCById(126).name, 1, args.Player.TileX, args.Player.TileY, 50, 20);
+                    TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(127).type, TShock.Utils.GetNPCById(126).name, 1, args.Player.TileX, args.Player.TileY, 50, 20);
                     TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(134).type, TShock.Utils.GetNPCById(134).name, 1, args.Player.TileX, args.Player.TileY, 50, 20);
                     TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(266).type, TShock.Utils.GetNPCById(266).name, 1, args.Player.TileX, args.Player.TileY, 50, 20);
                     TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(222).type, TShock.Utils.GetNPCById(222).name, 1, args.Player.TileX, args.Player.TileY, 50, 20);
@@ -209,7 +209,7 @@ namespace CawAIO
             if (config.SEconomy)
             {
                 {
-                    if (!args.Player.Group.HasPermission("bank.worldtransfer"))
+                    if (!args.Player.Group.HasPermission("caw.gamble"))
                     {
                         if (playeramount > moneyamount2)
                         {
@@ -233,7 +233,7 @@ namespace CawAIO
                     }
                     else
                     {
-                        if (args.Player.Group.HasPermission("bank.worldtransfer"))
+                        if (args.Player.Group.HasPermission("caw.gamble"))
                         {
                             int monsteramount;
                             do
@@ -309,13 +309,24 @@ namespace CawAIO
 
                                 if (args.Player.InventorySlotAvailable || item.name.Contains("Coin"))
                                 {
-                                    if (!args.Player.Group.HasPermission("bank.worldtransfer"))
+                                    if (!args.Player.Group.HasPermission("caw.gamble"))
                                     {
                                         item.prefix = (byte)prefixId;
                                         args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
                                         SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, amount, Journalpayment, string.Format("{0} has been lost for gambling", amount2, args.Player.Name), string.Format("CawAIO: " + "Gambling"));
                                         args.Player.SendSuccessMessage("You have lost {0} and gambled {1} {2}(s).", amount2, itemAmount, item.AffixName());
                                         Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.Red);
+
+                                        foreach (TSPlayer player in TShock.Players)
+                                        {
+                                            if (player != null)
+                                            {
+                                                if (player.Group.HasPermission("caw.staff"))
+                                                {
+                                                    player.SendMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount + " " + item.AffixName(), Color.Yellow);
+                                                }
+                                            }
+                                        }
                                     }
                                     else
                                     {
@@ -323,6 +334,17 @@ namespace CawAIO
                                         args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
                                         args.Player.SendSuccessMessage("You have lost nothing and gambled {0} {1}(s).", itemAmount, item.AffixName());
                                         Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.Red);
+
+                                        foreach (TSPlayer player in TShock.Players)
+                                        {
+                                            if (player != null)
+                                            {
+                                                if (player.Group.HasPermission("caw.staff"))
+                                                {
+                                                    player.SendMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount + " " + item.AffixName(), Color.Yellow);
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                                 else
@@ -348,6 +370,7 @@ namespace CawAIO
                 {
                     itemName = random.Next(-48, Main.maxItems);
                 } while (config.ItemExclude.Contains(itemName));
+
                 Item item = TShock.Utils.GetItemById(itemName);
 
                 if (args.Player != null && selectedPlayer != null)
@@ -362,10 +385,15 @@ namespace CawAIO
                         args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
                         Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.Red);
 
-                        List<TSPlayer> staffmembers = TShock.Players.Where(p => p.Group != null && p.Group.HasPermission("cawaio.gamble.staff")).ToList();
-                        foreach (TSPlayer staff in staffmembers)
+                        foreach (TSPlayer player in TShock.Players)
                         {
-                            staff.SendMessage(string.Format("{0} just gambled {1}", args.Player.Name, item.AffixName()), Color.Yellow);
+                            if (player != null)
+                            {
+                                if (player.Group.HasPermission("caw.staff"))
+                                {
+                                    player.SendMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount + " " + item.AffixName(), Color.Yellow);
+                                }
+                            }
                         }
                     }
                 }
@@ -544,9 +572,9 @@ namespace CawAIO
         public void Actionfor(ServerChatEventArgs args)
         {
             var player = TShock.Players[args.Who];
-            foreach (string Word in config.ActionAboveForWords)
+            foreach (string Word in config.BanWords)
             {
-                if (player.Group.HasPermission("permissions.staff"))
+                if (player.Group.HasPermission("caw.staff"))
                 {
                     args.Handled = false;
                 }
@@ -561,7 +589,7 @@ namespace CawAIO
                             break;
                         case "ignore":
                             args.Handled = true;
-                            player.SendErrorMessage("Your message has been ignored, you have said a banned word.");
+                            player.SendErrorMessage("Your message has been ignored for saying: {0}", Word);
                             break;
                         case "donothing":
                             args.Handled = false;
@@ -628,7 +656,7 @@ namespace CawAIO
         public class Config
         {
             public string Action = "ignore";
-            public string[] ActionAboveForWords = { "yolo", "swag", "can i be staff", "can i be admin" };
+            public string[] BanWords = { "yolo", "swag", "can i be staff", "can i be admin" };
             public bool ForceHalloween = false;
             public bool SEconomy = false;
             public bool CanUseBuffShadowDodge = false;
