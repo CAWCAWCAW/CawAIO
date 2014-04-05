@@ -21,7 +21,7 @@ namespace CawAIO
     {
         public override Version Version
         {
-            get { return new Version("1.6.1"); }
+            get { return new Version("1.6.2"); }
         }
 
         public override string Name
@@ -552,7 +552,7 @@ namespace CawAIO
                 return;
             }
 
-            if (config.CanUseBuffShadowDodge)
+            if (config.BlockShadowDodgeBuff)
             {
                 if (args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("shadow d") || args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("\"shadow d") || args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("59"))
                 {
@@ -572,30 +572,43 @@ namespace CawAIO
         public void Actionfor(ServerChatEventArgs args)
         {
             var player = TShock.Players[args.Who];
-            foreach (string Word in config.BanWords)
+            if (!args.Text.ToLower().StartsWith("/") || args.Text.ToLower().StartsWith("/w") || args.Text.ToLower().StartsWith("/r") || args.Text.ToLower().StartsWith("/me") || args.Text.ToLower().StartsWith("/c") || args.Text.ToLower().StartsWith("/party"))
             {
-                if (player.Group.HasPermission("caw.staff"))
+                foreach (string Word in config.BanWords)
                 {
-                    args.Handled = false;
-                }
-
-                else if (args.Text.ToLower().Contains(Word))
-                {
-                    switch (config.Action)
+                    if (player.Group.HasPermission("caw.staff"))
                     {
-                        case "kick":
-                            args.Handled = true;
-                            TShock.Utils.Kick(player, config.KickMessage, true, true);
-                            break;
-                        case "ignore":
-                            args.Handled = true;
-                            player.SendErrorMessage("Your message has been ignored for saying: {0}", Word);
-                            break;
-                        case "donothing":
-                            args.Handled = false;
-                            break;
+                        args.Handled = false;
+                    }
+
+                    else if (args.Text.ToLower().Contains(Word))
+                    {
+                        switch (config.Action)
+                        {
+                            case "kick":
+                                args.Handled = true;
+                                TShock.Utils.Kick(player, config.KickMessage, true, false);
+                                break;
+                            case "ignore":
+                                args.Handled = true;
+                                player.SendErrorMessage("Your message has been ignored for saying: {0}", Word);
+                                break;
+                            //case "censor":
+                            //    args.Handled = false;
+                            //    var wordlength = Word.Length;
+                            //    var input = Word.Replace(Word, new string('*', wordlength));
+                            //    Word = input;
+                            //    break;
+                            case "donothing":
+                                args.Handled = false;
+                                break;
+                        }
                     }
                 }
+            }
+            else
+            {
+                args.Handled = false;
             }
         }
 
@@ -659,7 +672,7 @@ namespace CawAIO
             public string[] BanWords = { "yolo", "swag", "can i be staff", "can i be admin" };
             public bool ForceHalloween = false;
             public bool SEconomy = false;
-            public bool CanUseBuffShadowDodge = false;
+            public bool BlockShadowDodgeBuff = false;
             //public bool DuckhuntToggle = false;
             public int GambleCost = 50000;
             public int MonsterGambleCost = 50000;
