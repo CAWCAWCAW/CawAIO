@@ -15,8 +15,13 @@ using Wolfje.Plugins.SEconomy;
 
 namespace CawAIO
 {
-    [ApiVersion(1, 15)]
 
+    /* Instead of using player.SendMessage("string", Color.{Yellow/Red/etc}), there are defined methods for this already.
+     * player.SendInfoMessage("string") sends a yellow message. SendWarningMessage is orange. SendErrorMessage is red. 
+     * The same goes for using Log 
+     */
+
+    [ApiVersion(1, 15)]
     public class CawAIO : TerrariaPlugin
     {
         public override Version Version
@@ -52,17 +57,16 @@ namespace CawAIO
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.ownercast", Cawcast, "cc", "oc"));
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.gamble", Gamble, "gamble"));
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.reload", Reload_Config, "creload"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("caw.randomtp", randomtp, "randomtp", "rtp"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("caw.randommaptp", randommaptp, "randommaptp", "rmtp"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("caw.randomtp", RandomTp, "randomtp", "rtp"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("caw.randommaptp", RandomMapTp, "randommaptp", "rmtp"));
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.monstergamble", MonsterGamble, "monstergamble", "mg"));
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.jester", Jester, "jester", "j"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("caw.townnpc", townnpc, "townnpc"));
-            //TShockAPI.Commands.ChatCommands.Add(new Command("test", test, "test"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("caw.townnpc", TownNpc, "townnpc"));
             //TShockAPI.Commands.ChatCommands.Add(new Command("caw.toggle", toggle, "duckhunttoggle"));
             ServerApi.Hooks.ServerChat.Register(this, Bannedwords);
             ServerApi.Hooks.GameUpdate.Register(this, Configevents);
             ServerApi.Hooks.ServerChat.Register(this, Actionfor);
-            //ServerApi.Hooks.GameUpdate.Register(this, OnUpdatetest);
+            ServerApi.Hooks.GameUpdate.Register(this, DisableShadowDodgeBuff);
             ReadConfig();
         }
         protected override void Dispose(bool disposing)
@@ -72,13 +76,34 @@ namespace CawAIO
                 ServerApi.Hooks.ServerChat.Deregister(this, Bannedwords);
                 ServerApi.Hooks.GameUpdate.Deregister(this, Configevents);
                 ServerApi.Hooks.ServerChat.Deregister(this, Actionfor);
-                //ServerApi.Hooks.GameUpdate.Deregister(this, OnUpdatetest);
+                ServerApi.Hooks.GameUpdate.Deregister(this, DisableShadowDodgeBuff);
             }
             base.Dispose(disposing);
         }
 
+        /* Checks every active player to see if they have the shadow dodge buff active. */
+        private void DisableShadowDodgeBuff(EventArgs e)
+        {
+            foreach (TSPlayer p in TShock.Players)
+            {
+                if (p != null && p.Active && p.ConnectionAlive)
+                {
+                    for (int i = 0; i < p.TPlayer.buffType.Length; i++)
+                    {
+                        if (p.TPlayer.buffType[i] == 59 && p.TPlayer.buffTime[i] > 5 && !p.Group.HasPermission("caw.staff"))
+                            //If the buff time > 7 seconds
+                        {
+                            p.TPlayer.buffTime[i] = 0;
+                            p.SendErrorMessage("You are not allowed to use shadow dodge!");
+                            p.Disable("using Shadow Dodge buff for >7 seconds", true);
+                        }
+                    }
+                }
+            }
+        }
 
-        public void townnpc(CommandArgs args)
+
+        public void TownNpc(CommandArgs args)
         {
             int killcount = 0;
             for (int i = 0; i < Main.npc.Length; i++)
@@ -90,6 +115,8 @@ namespace CawAIO
                 }
             }
             TSPlayer.All.SendInfoMessage(string.Format("{0} killed {1} friendly NPCs and spawned all town NPCs.", args.Player.Name, killcount));
+
+            /* There's an easier way to do this, but it requires all NPCs to be spawned at least once first. Oh well */
             TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(19).type, TShock.Utils.GetNPCById(19).name, 1, args.Player.TileX, args.Player.TileY, 20, 20);
             TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(54).type, TShock.Utils.GetNPCById(54).name, 1, args.Player.TileX, args.Player.TileY, 20, 20);
             TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(209).type, TShock.Utils.GetNPCById(209).name, 1, args.Player.TileX, args.Player.TileY, 20, 20);
@@ -113,7 +140,7 @@ namespace CawAIO
             TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(108).type, TShock.Utils.GetNPCById(108).name, 1, args.Player.TileX, args.Player.TileY, 20, 20);
         }
 
-        private void randommaptp(CommandArgs args)
+        private void RandomMapTp(CommandArgs args)
         {
             Random rnd = new Random();
             int x = rnd.Next(0, Main.maxTilesX);
@@ -121,7 +148,7 @@ namespace CawAIO
             args.Player.Teleport(x * 16, y * 16);
         }
 
-        private void randomtp(CommandArgs args)
+        private void RandomTp(CommandArgs args)
         {
             if (TShock.Utils.ActivePlayers() <= 1)
             {
@@ -217,7 +244,7 @@ namespace CawAIO
                             do
                             {
                                 monsteramount = random.Next(1, Main.maxNPCs);
-                                args.Player.SendInfoMessage("You have gambled a ban monster, attempting to regamble...", Color.Yellow);
+                                args.Player.SendInfoMessage("You have gambled a banned monster, attempting to regamble...", Color.Yellow);
                             } while (config.MonsterExclude.Contains(monsteramount));
 
                             NPC npcs = TShock.Utils.GetNPCById(monsteramount);
@@ -251,13 +278,15 @@ namespace CawAIO
             else
             {
                 int monsteramount;
-                do
-                {
-                    monsteramount = random.Next(1, Main.maxNPCs);
-                } while (config.MonsterExclude.Contains(monsteramount));
+
+                do monsteramount = random.Next(1, Main.maxNPCs); /* This isn't an amount of monsters. */
+                while (config.MonsterExclude.Contains(monsteramount));
+
                 NPC npcs = TShock.Utils.GetNPCById(monsteramount);
                 TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-                TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
+
+                TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name,
+                    npcs.name, amount));
             }
         }
 
@@ -282,8 +311,12 @@ namespace CawAIO
         private static void Gamble(CommandArgs args)
         {
             Random random = new Random();
-            int itemAmount = random.Next(1, 100);
+
+            /* random.Next(1, 100); Wouldn't it be better to define the amount after you know the max stack? */
+            int itemAmount = 0;
             int prefixId = random.Next(1, 83);
+
+            /* Why is this named selectedPlayer? You're not selecting a player */
             var selectedPlayer = SEconomyPlugin.GetEconomyPlayerByBankAccountNameSafe(args.Player.UserAccountName);
             var playeramount = selectedPlayer.BankAccount.Balance;
             Money amount = -config.GambleCost;
@@ -292,76 +325,88 @@ namespace CawAIO
             if (config.SEconomy)
             {
                 int itemName;
-                do
-                {
-                    itemName = random.Next(-48, Main.maxItems);
-                } while (config.ItemExclude.Contains(itemName));
+
+                do itemName = random.Next(-48, Main.maxItems);
+                while (config.ItemExclude.Contains(itemName));
+
                 Item item = TShock.Utils.GetItemById(itemName);
+
+                if (args.Player != null && selectedPlayer != null)
+                {
+                    /* if (itemAmount > item.maxStack)
+                        itemAmount = item.maxStack; */
+                    itemAmount = random.Next(1, item.maxStack);  /* Now the item stack is much more dynamic */
+
+                    if (playeramount > amount2)
                     {
-                        if (args.Player != null && selectedPlayer != null)
+                        if (args.Player.InventorySlotAvailable || item.name.ToLower().Contains("coin"))
                         {
-                            if (itemAmount > item.maxStack)
+                            if (!args.Player.Group.HasPermission("caw.gamble"))
                             {
-                                itemAmount = item.maxStack;
-                            }
-                            if (playeramount > amount2)
-                            {
+                                item.prefix = (byte)prefixId;
 
-                                if (args.Player.InventorySlotAvailable || item.name.Contains("Coin"))
+                                args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
+
+                                SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, amount, 
+                                    Journalpayment, string.Format("{0} has been lost for gambling", amount2, args.Player.Name),
+                                    string.Format("CawAIO: " + "Gambling"));
+                                
+                                args.Player.SendSuccessMessage("You have lost {0} and gambled {1} {2}(s).", amount2, itemAmount,
+                                    item.AffixName());
+
+                                /* Putting Color.Red into Log.ConsoleInfo makes no sense. Log.ConsoleInfo has its own colour,
+                                 * and no where in the parameters does it accept another colour */
+                                Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName());
+
+
+                                foreach (TSPlayer player in TShock.Players)
                                 {
-                                    if (!args.Player.Group.HasPermission("caw.gamble"))
-                                    {
-                                        item.prefix = (byte)prefixId;
-                                        args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
-                                        SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, amount, Journalpayment, string.Format("{0} has been lost for gambling", amount2, args.Player.Name), string.Format("CawAIO: " + "Gambling"));
-                                        args.Player.SendSuccessMessage("You have lost {0} and gambled {1} {2}(s).", amount2, itemAmount, item.AffixName());
-                                        Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.Red);
-
-                                        foreach (TSPlayer player in TShock.Players)
-                                        {
-                                            if (player != null)
-                                            {
-                                                if (player.Group.HasPermission("caw.staff"))
-                                                {
-                                                    player.SendMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount + " " + item.AffixName(), Color.Yellow);
-                                                }
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        item.prefix = (byte)prefixId;
-                                        args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
-                                        args.Player.SendSuccessMessage("You have lost nothing and gambled {0} {1}(s).", itemAmount, item.AffixName());
-                                        Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.Red);
-
-                                        foreach (TSPlayer player in TShock.Players)
-                                        {
-                                            if (player != null)
-                                            {
-                                                if (player.Group.HasPermission("caw.staff"))
-                                                {
-                                                    player.SendMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount + " " + item.AffixName(), Color.Yellow);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    args.Player.SendErrorMessage("Your inventory seems full.");
+                                    if (player != null)
+                                        if (player.Group.HasPermission("caw.staff"))
+                                            player.SendInfoMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount +
+                                                " " + item.AffixName());
                                 }
                             }
                             else
                             {
-                                args.Player.SendErrorMessage("You need {0} to gamble, you have {1}.", amount2, selectedPlayer.BankAccount.Balance);
+                                item.prefix = (byte)prefixId;
+
+                                args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
+
+                                args.Player.SendSuccessMessage("You have lost nothing and gambled {0} {1}(s).", itemAmount,
+                                    item.AffixName());
+
+                                Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName());
+
+                                foreach (TSPlayer player in TShock.Players)
+                                {
+                                    if (player != null)
+                                    {
+                                        if (player.Group.HasPermission("caw.staff"))
+                                        {
+                                            player.SendInfoMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount +
+                                                " " + item.AffixName());
+                                        }
+                                    }
+                                }
                             }
                         }
                         else
                         {
-                            args.Player.SendErrorMessage("The server could not find a valid bank account for the username {0}", args.Player.Name);
+                            args.Player.SendErrorMessage("Your inventory seems full.");
                         }
                     }
+                    else
+                    {
+                        args.Player.SendErrorMessage("You need {0} to gamble, you have {1}.", amount2,
+                            selectedPlayer.BankAccount.Balance);
+                    }
+                }
+                else
+                {
+                    args.Player.SendErrorMessage("The server could not find a valid bank account for the username {0}",
+                        args.Player.Name);
+                }
             }
             else
             {
@@ -406,37 +451,49 @@ namespace CawAIO
 
         private static void Smack(CommandArgs args)
         {
-            if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
-            {
-                args.Player.SendErrorMessage("Invalid syntax! Proper syntax: /smack <player>");
-                return;
-            }
-            if (args.Parameters[0].Length == 0)
-            {
-                args.Player.SendErrorMessage("Missing player name.");
-                return;
-            }
+            /* Not strictly required, unless you definitely want to restrict them to 1 parameter. */
+            //if (args.Parameters.Count < 1 || args.Parameters.Count > 2)
+            //{
+            //    args.Player.SendErrorMessage("Invalid syntax! Proper syntax: /smack <player>");
+            //    return;
+            //}
+            //if (args.Parameters[0].Length == 0)
+            //{
+            //    args.Player.SendErrorMessage("Missing player name.");
+            //    return;
+            //}
 
-            string plStr = args.Parameters[0];
-            var players = TShock.Utils.FindPlayer(plStr);
-            if (players.Count == 0)
+            if (args.Parameters.Count > 0)
             {
-                args.Player.SendErrorMessage("Invalid player!");
-            }
-            var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
-            if (PlayersFound.Count != 1)
-            {
-                args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
-                return;
-            }
-            else
-            {
-                var plr = players[0];
-                if (args.Parameters.Count == 1)
+                string plStr = string.Join(" ", args.Parameters);  /* This takes all parameters and joins them together.
+                                                                    * This way, players do not need to use "" for multi-word
+                                                                    * names. */
+                var players = TShock.Utils.FindPlayer(plStr);
+                if (players.Count == 0)
+                    args.Player.SendErrorMessage("No player matched your query '{0}'", plStr);
+                else if (players.Count > 1)
+                    TShock.Utils.SendMultipleMatchError(args.Player, players.Select(p => p.Name));
+                    /* Uses the TShock multi-match error to send a list of all matching players */
+
+                /* What? */
+                //var PlayersFound = TShock.Utils.FindPlayer(args.Parameters[0]);
+                //if (PlayersFound.Count != 1)
+                //{
+                //    args.Player.SendErrorMessage(PlayersFound.Count < 1 ? "No players matched." : "More than one player matched.");
+                //    return;
+                //}
+
+                else
+                {
+                    var plr = players[0];
+                    //if (args.Parameters.Count == 1) /* This was checked earlier */
                     TSPlayer.All.SendSuccessMessage(string.Format("{0} smacked {1}.",
                                                          args.Player.Name, plr.Name));
-                Log.Info(args.Player.Name + " smacked " + plr.Name);
+                    Log.Info(args.Player.Name + " smacked " + plr.Name);
+                }
             }
+            else
+                args.Player.SendErrorMessage("Invalid syntax! Proper syntax: /smack <player>");
         }
 
         //private DateTime LastCheck = DateTime.UtcNow;
@@ -495,33 +552,34 @@ namespace CawAIO
 
         private static void Forcehalloween(CommandArgs args)
         {
-            if (args.Parameters.Count == 0)
+            if (args.Parameters.Count > 0)
+            {
+                if (args.Parameters[0].ToLower() == "true")
+                {
+                    TShock.Config.ForceHalloween = true;
+                    Main.checkHalloween();
+                }
+                else if (args.Parameters[0].ToLower() == "false")
+                {
+                    TShock.Config.ForceHalloween = false;
+                    Main.checkHalloween();
+                }
+                else
+                {
+                    args.Player.SendErrorMessage("Usage: /forcehalloween [true/false]");
+                    return;
+                }
+                args.Player.SendInfoMessage(
+                        String.Format("The server is currently {0} force Halloween mode.",
+                        (TShock.Config.ForceHalloween ? "in" : "not in")));
+            }
+            else
             {
                 args.Player.SendErrorMessage("Usage: /forcehalloween [true/false]");
                 args.Player.SendInfoMessage(
                     String.Format("The server is currently {0} force Halloween mode.",
                                 (TShock.Config.ForceHalloween ? "in" : "not in")));
-                return;
             }
-
-            if (args.Parameters[0].ToLower() == "true")
-            {
-                TShock.Config.ForceHalloween = true;
-                Main.checkHalloween();
-            }
-            else if (args.Parameters[0].ToLower() == "false")
-            {
-                TShock.Config.ForceHalloween = false;
-                Main.checkHalloween();
-            }
-            else
-            {
-                args.Player.SendErrorMessage("Usage: /forcehalloween [true/false]");
-                return;
-            }
-            args.Player.SendInfoMessage(
-                    String.Format("The server is currently {0} force Halloween mode.",
-                    (TShock.Config.ForceHalloween ? "in" : "not in")));
         }
         private void Bunny(CommandArgs args)
         {
@@ -539,6 +597,9 @@ namespace CawAIO
             TShock.Utils.Broadcast(
                 "(Owner Broadcast) " + message, Color.Aqua);
         }
+
+        /* This should really have a better name, because it's not checking banned words.
+         * It's checking if someones trying to use the shadow dodge buff */
         private void Bannedwords(ServerChatEventArgs args)
         {
             if (args.Handled)
@@ -554,7 +615,9 @@ namespace CawAIO
 
             if (config.BlockShadowDodgeBuff)
             {
-                if (args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("shadow d") || args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("\"shadow d") || args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("59"))
+                if (args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("shadow d") ||
+                    args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("\"shadow d") ||
+                    args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("59"))
                 {
                     if (player.Group.HasPermission("caw.staff"))
                     {
@@ -563,7 +626,7 @@ namespace CawAIO
                     else
                     {
                         args.Handled = true;
-                        player.SendMessage("Shadow Dodge is not a buff you can use on this server through commands.", Color.Yellow);
+                        player.SendInfoMessage("Shadow Dodge is not a buff you can use on this server through commands.");
                     }
                 }
             }
@@ -572,7 +635,9 @@ namespace CawAIO
         public void Actionfor(ServerChatEventArgs args)
         {
             var player = TShock.Players[args.Who];
-            if (!args.Text.ToLower().StartsWith("/") || args.Text.ToLower().StartsWith("/w") || args.Text.ToLower().StartsWith("/r") || args.Text.ToLower().StartsWith("/me") || args.Text.ToLower().StartsWith("/c") || args.Text.ToLower().StartsWith("/party"))
+            if (!args.Text.ToLower().StartsWith("/") || args.Text.ToLower().StartsWith("/w") ||
+                args.Text.ToLower().StartsWith("/r") || args.Text.ToLower().StartsWith("/me") ||
+                args.Text.ToLower().StartsWith("/c") || args.Text.ToLower().StartsWith("/party"))
             {
                 foreach (string Word in config.BanWords)
                 {
@@ -593,12 +658,15 @@ namespace CawAIO
                                 args.Handled = true;
                                 player.SendErrorMessage("Your message has been ignored for saying: {0}", Word);
                                 break;
-                            //case "censor":
-                            //    args.Handled = false;
-                            //    var wordlength = Word.Length;
-                            //    var input = Word.Replace(Word, new string('*', wordlength));
-                            //    Word = input;
-                            //    break;
+                            case "censor":
+                                /* Handle the text, so it's not sent. Then create a variable that is the same as args.Text
+                                 * Replace the banned word with the ***, then create a fake player message and broadcast it */
+                                args.Handled = true;
+                                var text = args.Text;
+                                text = args.Text.Replace(Word, new string('*', Word.Length));
+                                player.SendMessageFromPlayer(text, player.Group.R, player.Group.G,
+                                    player.Group.B, player.Index);
+                                break;
                             case "donothing":
                                 args.Handled = false;
                                 break;
@@ -668,6 +736,11 @@ namespace CawAIO
 
         public class Config
         {
+            /* These could really use some better names.
+             * 'Action' should be something more like 'ActionOnBannedWordUse'. Always assume the end user is as thick as
+             * a plank.
+             * 'SEconomy' => 'EnableSEconomyExtension' 
+             * Etc */
             public string Action = "ignore";
             public string[] BanWords = { "yolo", "swag", "can i be staff", "can i be admin" };
             public bool ForceHalloween = false;
