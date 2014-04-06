@@ -21,7 +21,7 @@ namespace CawAIO
     {
         public override Version Version
         {
-            get { return new Version("1.6.2"); }
+            get { return new Version("1.6.2.5"); }
         }
 
         public override string Name
@@ -209,7 +209,7 @@ namespace CawAIO
             if (config.SEconomy)
             {
                 {
-                    if (!args.Player.Group.HasPermission("caw.gamble"))
+                    if (!args.Player.Group.HasPermission("caw.gamble.nocost"))
                     {
                         if (playeramount > moneyamount2)
                         {
@@ -233,7 +233,7 @@ namespace CawAIO
                     }
                     else
                     {
-                        if (args.Player.Group.HasPermission("caw.gamble"))
+                        if (args.Player.Group.HasPermission("caw.gamble.nocost"))
                         {
                             int monsteramount;
                             do
@@ -309,7 +309,7 @@ namespace CawAIO
 
                                 if (args.Player.InventorySlotAvailable || item.name.Contains("Coin"))
                                 {
-                                    if (!args.Player.Group.HasPermission("caw.gamble"))
+                                    if (!args.Player.Group.HasPermission("caw.gamble.nocost"))
                                     {
                                         item.prefix = (byte)prefixId;
                                         args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
