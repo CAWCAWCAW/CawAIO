@@ -1,0 +1,13 @@
+C:\Users\AJD\Documents\GitHub\CawAIO\bin\Release\CawAIO.dll
+C:\Users\AJD\Documents\GitHub\CawAIO\bin\Release\CawAIO.pdb
+C:\Users\AJD\Documents\GitHub\CawAIO\bin\Release\Newtonsoft.Json.dll
+C:\Users\AJD\Documents\GitHub\CawAIO\bin\Release\TerrariaServer.exe
+C:\Users\AJD\Documents\GitHub\CawAIO\bin\Release\TShockAPI.dll
+C:\Users\AJD\Documents\GitHub\CawAIO\bin\Release\Wolfje.Plugins.SEconomy.dll
+C:\Users\AJD\Documents\GitHub\CawAIO\obj\Release\CawAIO.csprojResolveAssemblyReference.cache
+C:\Users\AJD\Documents\GitHub\CawAIO\obj\Release\CawAIO.dll
+C:\Users\AJD\Documents\GitHub\CawAIO\obj\Release\CawAIO.pdb
+C:\Users\AJD\Documents\GitHub\CawAIO\bin\Release\HttpServer.dll
+C:\Users\AJD\Documents\GitHub\CawAIO\bin\Release\Mono.Data.Sqlite.dll
+C:\Users\AJD\Documents\GitHub\CawAIO\bin\Release\MySql.Data.dll
+C:\Users\AJD\Documents\GitHub\CawAIO\bin\Release\MySql.Web.dll
