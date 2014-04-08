@@ -15,10 +15,12 @@ using Wolfje.Plugins.SEconomy;
 
 namespace CawAIO
 {
-
     [ApiVersion(1, 15)]
     public class CawAIO : TerrariaPlugin
     {
+        public int actionType = 0;
+        private Config config;
+
         public override Version Version
         {
             get { return new Version("1.7"); }
@@ -44,6 +46,8 @@ namespace CawAIO
         {
             Order = 1;
         }
+
+        #region Initialize
         public override void Initialize()
         {
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.smack", Smack, "smack"));
@@ -64,6 +68,9 @@ namespace CawAIO
             ServerApi.Hooks.GameUpdate.Register(this, DisableShadowDodgeBuff);
             ReadConfig();
         }
+        #endregion
+
+        #region Dispose
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -75,7 +82,9 @@ namespace CawAIO
             }
             base.Dispose(disposing);
         }
+        #endregion
 
+        #region Disable Shadow Dodge Buff
         private void DisableShadowDodgeBuff(EventArgs e)
         {
             foreach (TSPlayer p in TShock.Players)
@@ -94,8 +103,9 @@ namespace CawAIO
                 }
             }
         }
+        #endregion
 
-
+        #region Spawn Town Npcs
         public void TownNpc(CommandArgs args)
         {
             int killcount = 0;
@@ -130,7 +140,9 @@ namespace CawAIO
             TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(228).type, TShock.Utils.GetNPCById(228).name, 1, args.Player.TileX, args.Player.TileY, 20, 20);
             TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(108).type, TShock.Utils.GetNPCById(108).name, 1, args.Player.TileX, args.Player.TileY, 20, 20);
         }
+        #endregion
 
+        #region Teleport to random map coordinate
         private void RandomMapTp(CommandArgs args)
         {
             Random rnd = new Random();
@@ -138,7 +150,9 @@ namespace CawAIO
             int y = rnd.Next(0, Main.maxTilesY);
             args.Player.Teleport(x * 16, y * 16);
         }
+        #endregion
 
+        #region Teleport to random player
         private void RandomTp(CommandArgs args)
         {
             if (TShock.Utils.ActivePlayers() <= 1)
@@ -156,10 +170,10 @@ namespace CawAIO
             }
             args.Player.Teleport(ts.TileX * 16, ts.TileY * 16);
         }
+        #endregion
 
-        private static Config config;
-
-        private static void Jester(CommandArgs args)
+        #region Jester
+        private void Jester(CommandArgs args)
         {
             if (args.Parameters.Count != 1)
             {
@@ -214,8 +228,10 @@ namespace CawAIO
                     break;
             }
         }
+        #endregion
 
-        private static void MonsterGamble(CommandArgs args)
+        #region Monster Gambling
+        private void MonsterGamble(CommandArgs args)
         {
             Random random = new Random();
             int amount = random.Next(1, 50);
@@ -280,8 +296,10 @@ namespace CawAIO
                     npcs.name, amount));
             }
         }
+        #endregion
 
-        private static void Gamble(CommandArgs args)
+        #region Normal Gambling
+        private void Gamble(CommandArgs args)
         {
             Random random = new Random();
             int itemAmount = 0;
@@ -413,8 +431,10 @@ namespace CawAIO
                 }
             }
         }
+        #endregion
 
-        private static void Smack(CommandArgs args)
+        #region Smack command
+        private void Smack(CommandArgs args)
         {
             if (args.Parameters.Count > 0)
             {
@@ -435,6 +455,7 @@ namespace CawAIO
             else
                 args.Player.SendErrorMessage("Invalid syntax! Proper syntax: /smack <player>");
         }
+        #endregion
 
         //private DateTime LastCheck = DateTime.UtcNow;
         //private int Duckhunt = 10;
@@ -476,8 +497,8 @@ namespace CawAIO
 
         //}
 
-
-        private static void Configevents(EventArgs args)
+        #region Config events
+        private void Configevents(EventArgs args)
         {
             if (config.ForceHalloween)
             {
@@ -490,8 +511,10 @@ namespace CawAIO
                 Main.checkHalloween();
             }
         }
+        #endregion
 
-        private static void Forcehalloween(CommandArgs args)
+        #region Force Hallowe'en command
+        private void Forcehalloween(CommandArgs args)
         {
             if (args.Parameters.Count > 0)
             {
@@ -522,6 +545,9 @@ namespace CawAIO
                                 (TShock.Config.ForceHalloween ? "in" : "not in")));
             }
         }
+        #endregion
+
+        #region Bunny Command
         private void Bunny(CommandArgs args)
         {
             TSPlayer player = TShock.Players[args.Player.Index];
@@ -530,15 +556,19 @@ namespace CawAIO
                 player.SetBuff(40, 60, true);
             }
         }
+        #endregion
 
-        private static void Cawcast(CommandArgs args)
+        #region Cawcast Command
+        private void Cawcast(CommandArgs args)
         {
             string message = string.Join(" ", args.Parameters);
 
             TShock.Utils.Broadcast(
                 "(Owner Broadcast) " + message, Color.Aqua);
         }
+        #endregion
 
+        #region Block Shadow Dodge Command Usage
         private void ShadowDodgeCommandBlock(ServerChatEventArgs args)
         {
             if (args.Handled)
@@ -570,10 +600,14 @@ namespace CawAIO
                 }
             }
         }
+        #endregion
 
-        public void Actionfor(ServerChatEventArgs args)
+        #region Block Banned Words
+        private void Actionfor(ServerChatEventArgs args)
         {
             var player = TShock.Players[args.Who];
+            var text = args.Text;
+            var newText = "";
             if (!args.Text.ToLower().StartsWith("/") || args.Text.ToLower().StartsWith("/w") ||
                 args.Text.ToLower().StartsWith("/r") || args.Text.ToLower().StartsWith("/me") ||
                 args.Text.ToLower().StartsWith("/c") || args.Text.ToLower().StartsWith("/party"))
@@ -599,9 +633,7 @@ namespace CawAIO
                                 break;
                             case "censor":
                                 args.Handled = true;
-                                var text = args.Text;
-                                text = args.Text.Replace(Word, new string('*', Word.Length));
-                                TSPlayer.All.SendMessage(player.Group.Prefix + player.Name + ": " + text, player.Group.R,player.Group.G,player.Group.B);
+                                newText = args.Text.Replace(Word, new string('*', Word.Length));
                                 break;
                             case "donothing":
                                 args.Handled = false;
@@ -609,14 +641,19 @@ namespace CawAIO
                         }
                     }
                 }
+                if (newText != text)
+                    TSPlayer.All.SendMessage(player.Group.Prefix + player.Name + ": " + text,
+                        player.Group.R, player.Group.G, player.Group.B);
             }
             else
             {
                 args.Handled = false;
             }
         }
+        #endregion
 
-        private static void CreateConfig()
+        #region Create Config File
+        private void CreateConfig()
         {
             string filepath = Path.Combine(TShock.SavePath, "CawAIO.json");
             try
@@ -637,8 +674,10 @@ namespace CawAIO
                 Log.ConsoleError(ex.Message);
             }
         }
+        #endregion
 
-        private static bool ReadConfig()
+        #region Read Config File
+        private bool ReadConfig()
         {
             string filepath = Path.Combine(TShock.SavePath, "CawAIO.json");
             try
@@ -669,7 +708,9 @@ namespace CawAIO
             }
             return false;
         }
+        #endregion
 
+        #region Config Class
         public class Config
         {
             public string ActionForBannedWord = "ignore";
@@ -688,7 +729,9 @@ namespace CawAIO
             //public int DuckhuntTimer = 10;
 
         }
+        #endregion
 
+        #region Reload Config File
         private void Reload_Config(CommandArgs args)
         {
             if (ReadConfig())
@@ -700,6 +743,6 @@ namespace CawAIO
                 args.Player.SendErrorMessage("CawAIO config reloaded unsucessfully. Check logs for details.");
             }
         }
-
+        #endregion
     }
 }
