@@ -23,7 +23,7 @@ namespace CawAIO
 
         public override Version Version
         {
-            get { return new Version("1.7"); }
+            get { return new Version("1.7.5"); }
         }
 
         public override string Name
@@ -326,7 +326,7 @@ namespace CawAIO
                     {
                         if (args.Player.InventorySlotAvailable || item.name.ToLower().Contains("coin"))
                         {
-                            if (!args.Player.Group.HasPermission("caw.gamble"))
+                            if (!args.Player.Group.HasPermission("caw.gamble.nocost"))
                             {
                                 item.prefix = (byte)prefixId;
 
@@ -606,8 +606,6 @@ namespace CawAIO
         private void Actionfor(ServerChatEventArgs args)
         {
             var player = TShock.Players[args.Who];
-            var text = args.Text;
-            var newText = "";
             if (!args.Text.ToLower().StartsWith("/") || args.Text.ToLower().StartsWith("/w") ||
                 args.Text.ToLower().StartsWith("/r") || args.Text.ToLower().StartsWith("/me") ||
                 args.Text.ToLower().StartsWith("/c") || args.Text.ToLower().StartsWith("/party"))
@@ -633,7 +631,9 @@ namespace CawAIO
                                 break;
                             case "censor":
                                 args.Handled = true;
-                                newText = args.Text.Replace(Word, new string('*', Word.Length));
+                                 var text = args.Text;
+                                 text = args.Text.Replace(Word, new string('*', Word.Length));
+                                 TSPlayer.All.SendMessage(player.Group.Prefix + player.Name + ": " + text, player.Group.R,player.Group.G,player.Group.B);
                                 break;
                             case "donothing":
                                 args.Handled = false;
@@ -641,9 +641,6 @@ namespace CawAIO
                         }
                     }
                 }
-                if (newText != text)
-                    TSPlayer.All.SendMessage(player.Group.Prefix + player.Name + ": " + text,
-                        player.Group.R, player.Group.G, player.Group.B);
             }
             else
             {
@@ -718,7 +715,7 @@ namespace CawAIO
             public bool ForceHalloween = false;
             public bool SEconomy = false;
             public bool BlockShadowDodgeBuff = false;
-            //public bool DuckhuntToggle = false;
+            //public bool DuckhuntToggle = false
             public int GambleCost = 50000;
             public int MonsterGambleCost = 50000;
             public string KickMessage = "You have said a banned word.";
