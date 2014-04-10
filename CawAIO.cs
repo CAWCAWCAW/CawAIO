@@ -20,10 +20,12 @@ namespace CawAIO
     {
         public int actionType = 0;
         private Config config;
+        public DateTime LastCheck = DateTime.UtcNow;
+        public CPlayers[] Playerlist = new CPlayers[256];
 
         public override Version Version
         {
-            get { return new Version("1.7.5"); }
+            get { return new Version("1.8"); }
         }
 
         public override string Name
@@ -66,6 +68,9 @@ namespace CawAIO
             ServerApi.Hooks.GameUpdate.Register(this, Configevents);
             ServerApi.Hooks.ServerChat.Register(this, Actionfor);
             ServerApi.Hooks.GameUpdate.Register(this, DisableShadowDodgeBuff);
+            ServerApi.Hooks.ServerJoin.Register(this, OnJoin);
+            ServerApi.Hooks.ServerLeave.Register(this, OnLeave);
+            ServerApi.Hooks.GameUpdate.Register(this, Cooldowns);
             ReadConfig();
         }
         #endregion
@@ -79,8 +84,22 @@ namespace CawAIO
                 ServerApi.Hooks.GameUpdate.Deregister(this, Configevents);
                 ServerApi.Hooks.ServerChat.Deregister(this, Actionfor);
                 ServerApi.Hooks.GameUpdate.Deregister(this, DisableShadowDodgeBuff);
+                ServerApi.Hooks.ServerJoin.Deregister(this, OnJoin);
+                ServerApi.Hooks.ServerLeave.Deregister(this, OnLeave);
+                ServerApi.Hooks.GameUpdate.Deregister(this, Cooldowns);
             }
             base.Dispose(disposing);
+        }
+        #endregion
+
+        #region Playerlist OnJoin/OnLeave
+        public void OnJoin(JoinEventArgs args)
+        {
+            Playerlist[args.Who] = new CPlayers(args.Who);
+        }
+        public void OnLeave(LeaveEventArgs args)
+        {
+            Playerlist[args.Who] = null;
         }
         #endregion
 
@@ -142,33 +161,94 @@ namespace CawAIO
         }
         #endregion
 
+        #region Cooldowns
+        private void Cooldowns(EventArgs args)
+        {
+            if ((DateTime.UtcNow - LastCheck).TotalSeconds >= 1)
+            {
+                LastCheck = DateTime.UtcNow;
+            foreach (var player in Playerlist)
+            {
+                if (player == null)
+                {
+                    continue;
+                }
+                if (player.GambleCooldown > 0)
+                {
+                    player.GambleCooldown--;
+                }
+                if (player.MonsterGambleCooldown > 0)
+                {
+                    player.MonsterGambleCooldown--;
+                }
+                if (player.RandomMapTeleportCooldown > 0)
+                {
+                    player.RandomMapTeleportCooldown--;
+                }
+                if (player.RandomPlayerTeleport > 0)
+                {
+                    player.RandomPlayerTeleport--;
+                }
+            }
+            }
+        }
+        #endregion
+
         #region Teleport to random map coordinate
         private void RandomMapTp(CommandArgs args)
         {
-            Random rnd = new Random();
-            int x = rnd.Next(0, Main.maxTilesX);
-            int y = rnd.Next(0, Main.maxTilesY);
-            args.Player.Teleport(x * 16, y * 16);
+            var player = Playerlist[args.Player.Index];
+
+            if ( player.RandomMapTeleportCooldown == 0)
+            {
+                Random rnd = new Random();
+                int x = rnd.Next(0, Main.maxTilesX);
+                int y = rnd.Next(0, Main.maxTilesY);
+                args.Player.Teleport(x * 16, y * 16);
+                if (!args.Player.Group.HasPermission("caw.nocooldown"))
+                {
+                    player.RandomMapTeleportCooldown = config.RandomMapTeleportCooldown;
+                }
+            }
+            else
+            {
+                args.Player.SendErrorMessage("This command is on cooldown for {0} seconds.", (player.RandomMapTeleportCooldown));
+            }
         }
         #endregion
 
         #region Teleport to random player
         private void RandomTp(CommandArgs args)
         {
-            if (TShock.Utils.ActivePlayers() <= 1)
+            var player = Playerlist[args.Player.Index];
+
+            if (player.RandomPlayerTeleport == 0)
             {
-                args.Player.SendErrorMessage("There is only you on the server, you cannot teleport to yourself!", Color.Red);
-                return;
+
+                if (TShock.Utils.ActivePlayers() <= 1)
+                {
+                    args.Player.SendErrorMessage("There is only you on the server, you cannot teleport to yourself!", Color.Red);
+                    return;
+                }
+                Random rnd = new Random();
+                TSPlayer ts = TShock.Players[rnd.Next(0, TShock.Utils.ActivePlayers() - 1)];
+                if (!ts.TPAllow && !args.Player.Group.HasPermission("permissions.tpall"))
+                {
+                    args.Player.SendErrorMessage(ts.Name + " has prevented users from teleporting to them.");
+                    ts.SendInfoMessage(args.Player.Name + " attempted to teleport to you.");
+                    return;
+                }
+                args.Player.Teleport(ts.TileX * 16, ts.TileY * 16);
+
+                if (!args.Player.Group.HasPermission("caw.nocooldown"))
+                {
+                    player.RandomMapTeleportCooldown = config.RandomPlayerTeleportCooldown;
+                }
             }
-            Random rnd = new Random();
-            TSPlayer ts = TShock.Players[rnd.Next(0, TShock.Utils.ActivePlayers() - 1)];
-            if (!ts.TPAllow && !args.Player.Group.HasPermission("permissions.tpall"))
+            else
             {
-                args.Player.SendErrorMessage(ts.Name + " has prevented users from teleporting to them.");
-                ts.SendInfoMessage(args.Player.Name + " attempted to teleport to you.");
-                return;
+                args.Player.SendErrorMessage("This command is on cooldown for {0} seconds.", (player.RandomPlayerTeleport));
             }
-            args.Player.Teleport(ts.TileX * 16, ts.TileY * 16);
         }
         #endregion
 
@@ -238,63 +318,77 @@ namespace CawAIO
             var Journalpayment = Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToSender;
             var selectedPlayer = SEconomyPlugin.GetEconomyPlayerByBankAccountNameSafe(args.Player.UserAccountName);
             var playeramount = selectedPlayer.BankAccount.Balance;
+            var player = Playerlist[args.Player.Index];
             Money moneyamount = -config.MonsterGambleCost;
             Money moneyamount2 = config.MonsterGambleCost;
-            if (config.SEconomy)
+            
+            if (player.MonsterGambleCooldown == 0)
             {
+                if (!args.Player.Group.HasPermission("caw.nocooldown"))
                 {
-                    if (!args.Player.Group.HasPermission("caw.gamble.nocost"))
-                    {
-                        if (playeramount > moneyamount2)
-                        {
-                            int monsteramount;
-                            do
-                            {
-                                monsteramount = random.Next(1, Main.maxNPCs);
-                                args.Player.SendInfoMessage("You have gambled a banned monster, attempting to regamble...", Color.Yellow);
-                            } while (config.MonsterExclude.Contains(monsteramount));
+                    player.MonsterGambleCooldown = config.MonsterGambleCooldown;
+                }
 
-                            NPC npcs = TShock.Utils.GetNPCById(monsteramount);
-                            TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
-                            args.Player.SendSuccessMessage("You have lost {0} for monster gambling.", moneyamount2);
-                            SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, moneyamount, Journalpayment, string.Format("{0} has been lost for monster gambling", moneyamount2, args.Player.Name), string.Format("CawAIO: " + "Monster Gambling"));
+                if (config.SEconomy)
+                {
+                    {
+                        if (!args.Player.Group.HasPermission("caw.gamble.nocost"))
+                        {
+                            if (playeramount > moneyamount2)
+                            {
+                                int monsteramount;
+                                do
+                                {
+                                    monsteramount = random.Next(1, Main.maxNPCs);
+                                    args.Player.SendInfoMessage("You have gambled a banned monster, attempting to regamble...", Color.Yellow);
+                                } while (config.MonsterExclude.Contains(monsteramount));
+
+                                NPC npcs = TShock.Utils.GetNPCById(monsteramount);
+                                TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
+                                TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
+                                args.Player.SendSuccessMessage("You have lost {0} for monster gambling.", moneyamount2);
+                                SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, moneyamount, Journalpayment, string.Format("{0} has been lost for monster gambling", moneyamount2, args.Player.Name), string.Format("CawAIO: " + "Monster Gambling"));
+                            }
+                            else
+                            {
+                                args.Player.SendErrorMessage("You need {0} to gamble, you have {1}.", moneyamount2, selectedPlayer.BankAccount.Balance);
+                            }
                         }
                         else
                         {
-                            args.Player.SendErrorMessage("You need {0} to gamble, you have {1}.", moneyamount2, selectedPlayer.BankAccount.Balance);
-                        }
-                    }
-                    else
-                    {
-                        if (args.Player.Group.HasPermission("caw.gamble.nocost"))
-                        {
-                            int monsteramount;
-                            do
+                            if (args.Player.Group.HasPermission("caw.gamble.nocost"))
                             {
-                                monsteramount = random.Next(1, Main.maxNPCs);
-                            } while (config.MonsterExclude.Contains(monsteramount));
-                            NPC npcs = TShock.Utils.GetNPCById(monsteramount);
-                            TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-                            TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
-                            args.Player.SendSuccessMessage("You have lost nothing for monster gambling.");
+                                int monsteramount;
+                                do
+                                {
+                                    monsteramount = random.Next(1, Main.maxNPCs);
+                                } while (config.MonsterExclude.Contains(monsteramount));
+                                NPC npcs = TShock.Utils.GetNPCById(monsteramount);
+                                TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
+                                TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
+                                args.Player.SendSuccessMessage("You have lost nothing for monster gambling.");
+                            }
                         }
                     }
                 }
+                else
+                {
+                    int Randnpc;
+
+                    do Randnpc = random.Next(1, Main.maxNPCs);
+                    while (config.MonsterExclude.Contains(Randnpc));
+
+                    NPC npcs = TShock.Utils.GetNPCById(Randnpc);
+                    TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
+
+                    TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name,
+                        npcs.name, amount));
+                }
             }
-            else
-            {
-                int Randnpc;
-
-                do Randnpc = random.Next(1, Main.maxNPCs);
-                while (config.MonsterExclude.Contains(Randnpc));
-
-                NPC npcs = TShock.Utils.GetNPCById(Randnpc);
-                TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
-
-                TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name,
-                    npcs.name, amount));
-            }
+                    else
+                    {
+                        args.Player.SendErrorMessage("This command is on cooldown for {0} seconds.", (player.MonsterGambleCooldown));
+                    }
         }
         #endregion
 
@@ -306,9 +400,18 @@ namespace CawAIO
             int prefixId = random.Next(1, 83);
             var UsernameBankAccount = SEconomyPlugin.GetEconomyPlayerByBankAccountNameSafe(args.Player.UserAccountName);
             var playeramount = UsernameBankAccount.BankAccount.Balance;
+            var player = Playerlist[args.Player.Index];
             Money amount = -config.GambleCost;
             Money amount2 = config.GambleCost;
             var Journalpayment = Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToSender;
+            
+            if (player.MonsterGambleCooldown == 0)
+            {
+                if (!args.Player.Group.HasPermission("caw.nocooldown"))
+                {
+                    player.MonsterGambleCooldown = config.GambleCooldown;
+                }
+
             if (config.SEconomy)
             {
                 int itemName;
@@ -342,11 +445,11 @@ namespace CawAIO
                                 Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName());
 
 
-                                foreach (TSPlayer player in TShock.Players)
+                                foreach (TSPlayer staffplayer in TShock.Players)
                                 {
-                                    if (player != null)
-                                        if (player.Group.HasPermission("caw.staff"))
-                                            player.SendInfoMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount +
+                                    if (staffplayer != null)
+                                        if (staffplayer.Group.HasPermission("caw.staff"))
+                                            staffplayer.SendInfoMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount +
                                                 " " + item.AffixName());
                                 }
                             }
@@ -361,13 +464,13 @@ namespace CawAIO
 
                                 Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName());
 
-                                foreach (TSPlayer player in TShock.Players)
+                                foreach (TSPlayer staffplayer in TShock.Players)
                                 {
-                                    if (player != null)
+                                    if (staffplayer != null)
                                     {
-                                        if (player.Group.HasPermission("caw.staff"))
+                                        if (staffplayer.Group.HasPermission("caw.staff"))
                                         {
-                                            player.SendInfoMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount +
+                                            staffplayer.SendInfoMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount +
                                                 " " + item.AffixName());
                                         }
                                     }
@@ -413,13 +516,13 @@ namespace CawAIO
                         args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
                         Log.ConsoleInfo("{0} has gambled {1} {2}(s)", args.Player.Name, itemAmount, item.AffixName(), Color.Red);
 
-                        foreach (TSPlayer player in TShock.Players)
+                        foreach (TSPlayer staffplayer in TShock.Players)
                         {
-                            if (player != null)
+                            if (staffplayer != null)
                             {
-                                if (player.Group.HasPermission("caw.staff"))
+                                if (staffplayer.Group.HasPermission("caw.staff"))
                                 {
-                                    player.SendMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount + " " + item.AffixName(), Color.Yellow);
+                                    staffplayer.SendMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount + " " + item.AffixName(), Color.Yellow);
                                 }
                             }
                         }
@@ -429,6 +532,11 @@ namespace CawAIO
                 {
                     args.Player.SendErrorMessage("Your inventory seems full.");
                 }
+            }
+        }
+            else
+            {
+                args.Player.SendErrorMessage("This command is on cooldown for another {0} seconds.", player.GambleCooldown);
             }
         }
         #endregion
@@ -712,13 +820,17 @@ namespace CawAIO
         {
             public string ActionForBannedWord = "ignore";
             public string[] BanWords = { "yolo", "swag", "can i be staff", "can i be admin" };
+            public string KickMessage = "You have said a banned word.";
             public bool ForceHalloween = false;
             public bool SEconomy = false;
             public bool BlockShadowDodgeBuff = false;
             //public bool DuckhuntToggle = false
             public int GambleCost = 50000;
+            public int GambleCooldown = 0;
             public int MonsterGambleCost = 50000;
-            public string KickMessage = "You have said a banned word.";
+            public int MonsterGambleCooldown = 0;
+            public int RandomMapTeleportCooldown = 0;
+            public int RandomPlayerTeleportCooldown = 0;
             public int[] ItemExclude = { 665, 666, 667, 668, 1131, 1554, 1555, 1556, 1557, 1558, 1559, 1560, 1561, 1562, 1563, 1564, 1565, 1566, 1567, 1568 };
             public int[] MonsterExclude = { 9, 22, 68, 17, 18, 37, 38, 19, 20, 37, 54, 68, 106, 123, 124, 107, 108, 113, 142, 178, 207, 208, 209, 227, 228, 160, 229, 353, 368 };
             //public int MonsterGambleCooldown = 0;
