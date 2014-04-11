@@ -247,7 +247,7 @@ namespace CawAIO
             }
             else
             {
-                args.Player.SendErrorMessage("This command is on cooldown for {0} seconds.", (player.RandomPlayerTeleport));
+                args.Player.SendErrorMessage("This command is on cooldown for {0} seconds.", player.RandomPlayerTeleport);
             }
         }
         #endregion
