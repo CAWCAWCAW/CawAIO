@@ -748,11 +748,11 @@ namespace CawAIO
                                 args.Handled = false;
                                 break;
                         }
-                        if (ignored.Count > 0)
-                        {
-                            player.SendErrorMessage("Your message has been ignored for saying: " + string.Join(", ", ignored));
-                        }
                     }
+                }
+                if (ignored.Count > 0)
+                {
+                    player.SendErrorMessage("Your message has been ignored for saying: " + string.Join(", ", ignored));
                 }
             }
             else
