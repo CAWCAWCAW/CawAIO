@@ -25,7 +25,7 @@ namespace CawAIO
 
         public override Version Version
         {
-            get { return new Version("1.8"); }
+            get { return new Version("1.9"); }
         }
 
         public override string Name
@@ -112,11 +112,11 @@ namespace CawAIO
                 {
                     for (int i = 0; i < p.TPlayer.buffType.Length; i++)
                     {
-                        if (p.TPlayer.buffType[i] == 59 && p.TPlayer.buffTime[i] > 5 && !p.Group.HasPermission("caw.staff"))
+                        if (p.TPlayer.buffType[i] == 59 && p.TPlayer.buffTime[i] > 20 && !p.Group.HasPermission("caw.shadowbypass"))
                         {
                             p.TPlayer.buffTime[i] = 0;
                             p.SendErrorMessage("You are not allowed to use shadow dodge!");
-                            p.Disable("using Shadow Dodge buff for >7 seconds", true);
+                            p.Disable("Using Shadow Dodge buff for greater than 20 seconds.", true);
                         }
                     }
                 }
@@ -448,7 +448,7 @@ namespace CawAIO
                                 foreach (TSPlayer staffplayer in TShock.Players)
                                 {
                                     if (staffplayer != null)
-                                        if (staffplayer.Group.HasPermission("caw.staff"))
+                                        if (staffplayer.Group.HasPermission("caw.gamblevision"))
                                             staffplayer.SendInfoMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount +
                                                 " " + item.AffixName());
                                 }
@@ -468,7 +468,7 @@ namespace CawAIO
                                 {
                                     if (staffplayer != null)
                                     {
-                                        if (staffplayer.Group.HasPermission("caw.staff"))
+                                        if (staffplayer.Group.HasPermission("caw.gamblevision"))
                                         {
                                             staffplayer.SendInfoMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount +
                                                 " " + item.AffixName());
@@ -520,7 +520,7 @@ namespace CawAIO
                         {
                             if (staffplayer != null)
                             {
-                                if (staffplayer.Group.HasPermission("caw.staff"))
+                                if (staffplayer.Group.HasPermission("caw.gamblevision"))
                                 {
                                     staffplayer.SendMessage("[Gamble] " + args.Player.Name + " has gambled " + itemAmount + " " + item.AffixName(), Color.Yellow);
                                 }
@@ -696,7 +696,7 @@ namespace CawAIO
                     args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("\"shadow d") ||
                     args.Text.ToLower().StartsWith("/buff") && args.Text.ToLower().Contains("59"))
                 {
-                    if (player.Group.HasPermission("caw.staff"))
+                    if (player.Group.HasPermission("caw.shadowbypass"))
                     {
                         args.Handled = false;
                     }
@@ -713,6 +713,7 @@ namespace CawAIO
         #region Block Banned Words
         private void Actionfor(ServerChatEventArgs args)
         {
+            var ignored = new List<string>();
             var player = TShock.Players[args.Who];
             if (!args.Text.ToLower().StartsWith("/") || args.Text.ToLower().StartsWith("/w") ||
                 args.Text.ToLower().StartsWith("/r") || args.Text.ToLower().StartsWith("/me") ||
@@ -720,7 +721,7 @@ namespace CawAIO
             {
                 foreach (string Word in config.BanWords)
                 {
-                    if (player.Group.HasPermission("caw.staff"))
+                    if (player.Group.HasPermission("caw.filterbypass"))
                     {
                         args.Handled = false;
                     }
@@ -735,7 +736,7 @@ namespace CawAIO
                                 break;
                             case "ignore":
                                 args.Handled = true;
-                                player.SendErrorMessage("Your message has been ignored for saying: {0}", Word);
+                                ignored.Add(Word);
                                 break;
                             case "censor":
                                 args.Handled = true;
@@ -746,6 +747,10 @@ namespace CawAIO
                             case "donothing":
                                 args.Handled = false;
                                 break;
+                        }
+                        if (ignored.Count > 0)
+                        {
+                            player.SendErrorMessage("Your message has been ignored for saying: " + string.Join(", ", ignored));
                         }
                     }
                 }
