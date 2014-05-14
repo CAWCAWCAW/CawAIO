@@ -15,7 +15,7 @@ using Wolfje.Plugins.SEconomy;
 
 namespace CawAIO
 {
-    [ApiVersion(1, 15)]
+    [ApiVersion(1, 16)]
     public class CawAIO : TerrariaPlugin
     {
         public int actionType = 0;
