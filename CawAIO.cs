@@ -25,7 +25,7 @@ namespace CawAIO
 
         public override Version Version
         {
-            get { return new Version("1.9"); }
+            get { return new Version("1.9.1"); }
         }
 
         public override string Name
@@ -54,7 +54,6 @@ namespace CawAIO
         {
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.smack", Smack, "smack"));
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.bunny", Bunny, "bunny"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("tshock.world.sethalloween", Forcehalloween, "forcehalloween"));
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.ownercast", Cawcast, "cc", "oc"));
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.gamble", Gamble, "gamble"));
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.reload", Reload_Config, "creload"));
@@ -65,7 +64,6 @@ namespace CawAIO
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.townnpc", TownNpc, "townnpc"));
             //TShockAPI.Commands.ChatCommands.Add(new Command("caw.toggle", toggle, "duckhunttoggle"));
             ServerApi.Hooks.ServerChat.Register(this, ShadowDodgeCommandBlock);
-            ServerApi.Hooks.GameUpdate.Register(this, Configevents);
             ServerApi.Hooks.ServerChat.Register(this, Actionfor);
             ServerApi.Hooks.GameUpdate.Register(this, DisableShadowDodgeBuff);
             ServerApi.Hooks.ServerJoin.Register(this, OnJoin);
@@ -81,7 +79,6 @@ namespace CawAIO
             if (disposing)
             {
                 ServerApi.Hooks.ServerChat.Deregister(this, ShadowDodgeCommandBlock);
-                ServerApi.Hooks.GameUpdate.Deregister(this, Configevents);
                 ServerApi.Hooks.ServerChat.Deregister(this, Actionfor);
                 ServerApi.Hooks.GameUpdate.Deregister(this, DisableShadowDodgeBuff);
                 ServerApi.Hooks.ServerJoin.Deregister(this, OnJoin);
@@ -605,56 +602,6 @@ namespace CawAIO
 
         //}
 
-        #region Config events
-        private void Configevents(EventArgs args)
-        {
-            if (config.ForceHalloween)
-            {
-                TShock.Config.ForceHalloween = true;
-                Main.checkHalloween();
-            }
-            else
-            {
-                TShock.Config.ForceHalloween = false;
-                Main.checkHalloween();
-            }
-        }
-        #endregion
-
-        #region Force Hallowe'en command
-        private void Forcehalloween(CommandArgs args)
-        {
-            if (args.Parameters.Count > 0)
-            {
-                if (args.Parameters[0].ToLower() == "true")
-                {
-                    TShock.Config.ForceHalloween = true;
-                    Main.checkHalloween();
-                }
-                else if (args.Parameters[0].ToLower() == "false")
-                {
-                    TShock.Config.ForceHalloween = false;
-                    Main.checkHalloween();
-                }
-                else
-                {
-                    args.Player.SendErrorMessage("Usage: /forcehalloween [true/false]");
-                    return;
-                }
-                args.Player.SendInfoMessage(
-                        String.Format("The server is currently {0} force Halloween mode.",
-                        (TShock.Config.ForceHalloween ? "in" : "not in")));
-            }
-            else
-            {
-                args.Player.SendErrorMessage("Usage: /forcehalloween [true/false]");
-                args.Player.SendInfoMessage(
-                    String.Format("The server is currently {0} force Halloween mode.",
-                                (TShock.Config.ForceHalloween ? "in" : "not in")));
-            }
-        }
-        #endregion
-
         #region Bunny Command
         private void Bunny(CommandArgs args)
         {
@@ -728,25 +675,33 @@ namespace CawAIO
 
                     else if (args.Text.ToLower().Contains(Word))
                     {
-                        switch (config.ActionForBannedWord)
+                        if (player.mute)
                         {
-                            case "kick":
-                                args.Handled = true;
-                                TShock.Utils.Kick(player, config.KickMessage, true, false);
-                                break;
-                            case "ignore":
-                                args.Handled = true;
-                                ignored.Add(Word);
-                                break;
-                            case "censor":
-                                args.Handled = true;
-                                 var text = args.Text;
-                                 text = args.Text.Replace(Word, new string('*', Word.Length));
-                                 TSPlayer.All.SendMessage(player.Group.Prefix + player.Name + ": " + text, player.Group.R,player.Group.G,player.Group.B);
-                                break;
-                            case "donothing":
-                                args.Handled = false;
-                                break;
+                            player.SendErrorMessage("You are muted!");
+                            return;
+                        }
+                        else
+                        {
+                            switch (config.ActionForBannedWord)
+                            {
+                                case "kick":
+                                    args.Handled = true;
+                                    TShock.Utils.Kick(player, config.KickMessage, true, false);
+                                    return;
+                                case "ignore":
+                                    args.Handled = true;
+                                    ignored.Add(Word);
+                                    break;
+                                case "censor":
+                                    args.Handled = true;
+                                    var text = args.Text;
+                                    text = args.Text.Replace(Word, new string('*', Word.Length));
+                                    TSPlayer.All.SendMessage(player.Group.Prefix + player.Name + ": " + text, player.Group.R, player.Group.G, player.Group.B);
+                                    break;
+                                case "donothing":
+                                    args.Handled = false;
+                                    break;
+                            }
                         }
                     }
                 }
