@@ -25,7 +25,7 @@ namespace CawAIO
 
         public override Version Version
         {
-            get { return new Version("1.9.1"); }
+            get { return new Version("1.9.2"); }
         }
 
         public override string Name
@@ -661,7 +661,9 @@ namespace CawAIO
         private void Actionfor(ServerChatEventArgs args)
         {
             var ignored = new List<string>();
+            var censored = new List<string>();
             var player = TShock.Players[args.Who];
+            var text = args.Text;
             if (!args.Text.ToLower().StartsWith("/") || args.Text.ToLower().StartsWith("/w") ||
                 args.Text.ToLower().StartsWith("/r") || args.Text.ToLower().StartsWith("/me") ||
                 args.Text.ToLower().StartsWith("/c") || args.Text.ToLower().StartsWith("/party"))
@@ -694,10 +696,11 @@ namespace CawAIO
                                     break;
                                 case "censor":
                                     args.Handled = true;
-                                    var text = args.Text;
+                                    text = args.Text;
                                     text = args.Text.Replace(Word, new string('*', Word.Length));
-                                    TSPlayer.All.SendMessage(player.Group.Prefix + player.Name + ": " + text, player.Group.R, player.Group.G, player.Group.B);
-                                    break;
+                                    TSPlayer.All.SendMessage("<" + "(" + player.Group.Name + ") " + player.Name + ">" + text, player.Group.R, player.Group.G, player.Group.B);
+                                    //TSPlayer.All.SendMessage(player.Group.Prefix + player.Name + ": " + text, player.Group.R, player.Group.G, player.Group.B);
+                                    return;
                                 case "donothing":
                                     args.Handled = false;
                                     break;
@@ -708,6 +711,7 @@ namespace CawAIO
                 if (ignored.Count > 0)
                 {
                     player.SendErrorMessage("Your message has been ignored for saying: " + string.Join(", ", ignored));
+                    return;
                 }
             }
             else
