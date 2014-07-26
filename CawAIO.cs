@@ -18,14 +18,15 @@ namespace CawAIO
     [ApiVersion(1, 16)]
     public class CawAIO : TerrariaPlugin
     {
-        public int actionType = 0;
+        public int WarningCount = 0;
         private Config config;
         public DateTime LastCheck = DateTime.UtcNow;
+        public DateTime SLastCheck = DateTime.UtcNow;
         public CPlayers[] Playerlist = new CPlayers[256];
 
         public override Version Version
         {
-            get { return new Version("1.9.2"); }
+            get { return new Version("1.9.3"); }
         }
 
         public override string Name
@@ -103,20 +104,24 @@ namespace CawAIO
         #region Disable Shadow Dodge Buff
         private void DisableShadowDodgeBuff(EventArgs e)
         {
-            foreach (TSPlayer p in TShock.Players)
+            if ((DateTime.UtcNow - SLastCheck).TotalSeconds >= config.BlockShadowDodgeTimerInSeconds)
             {
-                if (p != null && p.Active && p.ConnectionAlive)
+                foreach (TSPlayer p in TShock.Players)
                 {
-                    for (int i = 0; i < p.TPlayer.buffType.Length; i++)
+                    if (p != null && p.Active && p.ConnectionAlive)
                     {
-                        if (p.TPlayer.buffType[i] == 59 && p.TPlayer.buffTime[i] > 20 && !p.Group.HasPermission("caw.shadowbypass"))
+                        for (int i = 0; i < p.TPlayer.buffType.Length; i++)
                         {
-                            p.TPlayer.buffTime[i] = 0;
-                            p.SendErrorMessage("You are not allowed to use shadow dodge!");
-                            p.Disable("Using Shadow Dodge buff for greater than 20 seconds.", true);
+                            if (p.TPlayer.buffType[i] == 59 && p.TPlayer.buffTime[i] > 20 && !p.Group.HasPermission("caw.shadowbypass"))
+                            {
+                                p.TPlayer.buffTime[i] = 0;
+                                p.SendErrorMessage("You are not allowed to use shadow dodge!");
+                                p.Disable("Using Shadow Dodge buff for greater than 20 seconds.", true);
+                            }
                         }
                     }
                 }
+                SLastCheck = DateTime.UtcNow;
             }
         }
         #endregion
@@ -562,9 +567,8 @@ namespace CawAIO
         }
         #endregion
 
-        //private DateTime LastCheck = DateTime.UtcNow;
         //private int Duckhunt = 10;
-        //private bool DuckhuntToggle = config.DuckhuntToggle;
+        //private bool DuckhuntToggle;
         //public void OnUpdatetest(EventArgs args)
         //{
         //    if (DuckhuntToggle && ((DateTime.UtcNow - LastCheck).TotalSeconds >= 1))
@@ -574,7 +578,7 @@ namespace CawAIO
         //        {
         //            TSPlayer.All.SendInfoMessage("This is a test");
         //        }
-        //        else if (Duckhunt == config.DuckhuntTimer + 10)
+        //        else if (Duckhunt == config.DuckhuntTimer + 5)
         //        {
         //            spawnducks();
         //            TSPlayer.All.SendInfoMessage("test");
@@ -592,6 +596,7 @@ namespace CawAIO
         //    }
         //}
         //private TShockAPI.DB.Region arenaregion = new TShockAPI.DB.Region();
+
         //private void spawnducks()
         //{
         //    arenaregion = TShock.Regions.GetRegionByName("duckarena");
@@ -662,8 +667,11 @@ namespace CawAIO
         {
             var ignored = new List<string>();
             var censored = new List<string>();
+            var warningwords = new List<string>();
             var player = TShock.Players[args.Who];
             var text = args.Text;
+            var user = TShock.Users.GetUserByName(player.UserAccountName);
+            var knownIps = JsonConvert.DeserializeObject<List<string>>(user.KnownIps);
             if (!args.Text.ToLower().StartsWith("/") || args.Text.ToLower().StartsWith("/w") ||
                 args.Text.ToLower().StartsWith("/r") || args.Text.ToLower().StartsWith("/me") ||
                 args.Text.ToLower().StartsWith("/c") || args.Text.ToLower().StartsWith("/party"))
@@ -686,9 +694,71 @@ namespace CawAIO
                         {
                             switch (config.ActionForBannedWord)
                             {
+                                case "tempban":
+                                    args.Handled = true;
+                                    if (config.WarningSystem)
+                                    {
+                                        foreach (var wplayer in Playerlist)
+                                        {
+                                            if (wplayer.WarningCount > config.AmountofWarningBeforeAction)
+                                            {
+                                                TShock.Bans.AddBan(knownIps.Last(), player.Name, player.UUID, config.KickMessage, false, player.UserAccountName, DateTime.UtcNow.AddMinutes(config.BanTimeInMinutes).ToString("m"));
+                                            }
+                                            else
+                                            {
+                                                wplayer.WarningCount += 1;
+                                                warningwords.Add(Word);
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        TShock.Bans.AddBan(knownIps.Last(), player.Name, player.UUID, config.KickMessage, false, player.UserAccountName, DateTime.UtcNow.AddMinutes(config.BanTimeInMinutes).ToString("m"));
+                                    }
+                                        return;
+                                case "ban":
+                                        args.Handled = true;
+                                        if (config.WarningSystem)
+                                        {
+                                            foreach (var wplayer in Playerlist)
+                                            {
+                                                if (wplayer.WarningCount > config.AmountofWarningBeforeAction)
+                                                {
+                                                    TShock.Bans.AddBan(knownIps.Last(), player.Name, player.UUID, config.KickMessage, false, player.UserAccountName);
+                                                }
+                                                else
+                                                {
+                                                    wplayer.WarningCount += 1;
+                                                    warningwords.Add(Word);
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            TShock.Bans.AddBan(knownIps.Last(), player.Name, player.UUID, config.KickMessage, false, player.UserAccountName);
+                                        }
+                                    return;
                                 case "kick":
                                     args.Handled = true;
-                                    TShock.Utils.Kick(player, config.KickMessage, true, false);
+                                    if (config.WarningSystem)
+                                    {
+                                        foreach (var wplayer in Playerlist)
+                                        {
+                                            if (wplayer.WarningCount > config.AmountofWarningBeforeAction)
+                                            {
+                                                TShock.Utils.Kick(player, config.KickMessage, true, false);
+                                            }
+                                            else
+                                            {
+                                                wplayer.WarningCount += 1;
+                                                warningwords.Add(Word);
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        TShock.Utils.Kick(player, config.KickMessage, true, false);
+                                    }
                                     return;
                                 case "ignore":
                                     args.Handled = true;
@@ -698,7 +768,8 @@ namespace CawAIO
                                     args.Handled = true;
                                     text = args.Text;
                                     text = args.Text.Replace(Word, new string('*', Word.Length));
-                                    TSPlayer.All.SendMessage("<" + "(" + player.Group.Name + ") " + player.Name + ">" + text, player.Group.R, player.Group.G, player.Group.B);
+                                    string.Format(config.ChatFormat, player.Group.Name, player.Group.Prefix, player.Name, player.Group.Suffix, text, player.Group.R, player.Group.G, player.Group.B);
+                                    //TSPlayer.All.SendMessage("<" + "(" + player.Group.Name + ") " + player.Name + ">" + text, player.Group.R, player.Group.G, player.Group.B);
                                     //TSPlayer.All.SendMessage(player.Group.Prefix + player.Name + ": " + text, player.Group.R, player.Group.G, player.Group.B);
                                     return;
                                 case "donothing":
@@ -707,6 +778,11 @@ namespace CawAIO
                             }
                         }
                     }
+                }
+                if (warningwords.Count > 0 && WarningCount < 3)
+                {
+                    player.SendErrorMessage("Your message has been ignored for saying: " + string.Join(", ", warningwords));
+                    player.SendErrorMessage("Your warning count is now: {0}. After {1} warnings you will be {2}", WarningCount, config.AmountofWarningBeforeAction, config.ActionForBannedWord.ToString());
                 }
                 if (ignored.Count > 0)
                 {
@@ -783,12 +859,16 @@ namespace CawAIO
         public class Config
         {
             public string ActionForBannedWord = "ignore";
+            public string ChatFormat = "[{0}]{2}{3}{4}: {5}";
+            public bool WarningSystem = true;
+            public int AmountofWarningBeforeAction = 3;
             public string[] BanWords = { "yolo", "swag", "can i be staff", "can i be admin" };
             public string KickMessage = "You have said a banned word.";
-            public bool ForceHalloween = false;
+            public int BanTimeInMinutes = 10;
             public bool SEconomy = false;
             public bool BlockShadowDodgeBuff = false;
-            //public bool DuckhuntToggle = false
+            public int BlockShadowDodgeTimerInSeconds = 1;
+            public bool DuckhuntToggle = false;
             public int GambleCost = 50000;
             public int GambleCooldown = 0;
             public int MonsterGambleCost = 50000;
@@ -797,8 +877,6 @@ namespace CawAIO
             public int RandomPlayerTeleportCooldown = 0;
             public int[] ItemExclude = { 665, 666, 667, 668, 1131, 1554, 1555, 1556, 1557, 1558, 1559, 1560, 1561, 1562, 1563, 1564, 1565, 1566, 1567, 1568 };
             public int[] MonsterExclude = { 9, 22, 68, 17, 18, 37, 38, 19, 20, 37, 54, 68, 106, 123, 124, 107, 108, 113, 142, 178, 207, 208, 209, 227, 228, 160, 229, 353, 368 };
-            //public int MonsterGambleCooldown = 0;
-            //public int GambleCooldown = 0;
             //public int DuckhuntTimer = 10;
 
         }

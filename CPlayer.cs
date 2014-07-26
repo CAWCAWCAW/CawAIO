@@ -15,6 +15,7 @@ namespace CawAIO
         public int RandomPlayerTeleport { get; set; }
         public int GambleCooldown { get; set; }
         public int MonsterGambleCooldown { get; set; }
+        public int WarningCount { get; set; }
 
         public CPlayers(int index)
         {
