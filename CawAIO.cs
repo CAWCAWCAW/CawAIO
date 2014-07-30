@@ -23,6 +23,7 @@ namespace CawAIO
         public DateTime LastCheck = DateTime.UtcNow;
         public DateTime SLastCheck = DateTime.UtcNow;
         public CPlayers[] Playerlist = new CPlayers[256];
+        DateTime DLastCheck = DateTime.UtcNow;
 
         public override Version Version
         {
@@ -64,6 +65,7 @@ namespace CawAIO
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.jester", Jester, "jester", "j"));
             TShockAPI.Commands.ChatCommands.Add(new Command("caw.townnpc", TownNpc, "townnpc"));
             //TShockAPI.Commands.ChatCommands.Add(new Command("caw.toggle", toggle, "duckhunttoggle"));
+            //TShockAPI.Commands.ChatCommands.Add(new Command("caw.toggle", DuckHuntStart, "duckhuntstart", "dhstart"));
             ServerApi.Hooks.ServerChat.Register(this, ShadowDodgeCommandBlock);
             ServerApi.Hooks.ServerChat.Register(this, Actionfor);
             ServerApi.Hooks.GameUpdate.Register(this, DisableShadowDodgeBuff);
@@ -567,22 +569,19 @@ namespace CawAIO
         }
         #endregion
 
-        //private int Duckhunt = 10;
         //private bool DuckhuntToggle;
-        //public void OnUpdatetest(EventArgs args)
+        //public void DuckHuntStart(CommandArgs args)
         //{
-        //    if (DuckhuntToggle && ((DateTime.UtcNow - LastCheck).TotalSeconds >= 1))
+        //    if (DuckhuntToggle && ((DateTime.UtcNow - DLastCheck).TotalSeconds >= config.DuckhuntTimer))
         //    {
-        //        LastCheck = DateTime.UtcNow;
-        //        if (Duckhunt == config.GambleCooldown)
-        //        {
-        //            TSPlayer.All.SendInfoMessage("This is a test");
-        //        }
-        //        else if (Duckhunt == config.DuckhuntTimer + 5)
-        //        {
-        //            spawnducks();
-        //            TSPlayer.All.SendInfoMessage("test");
-        //        }
+        //        TSPlayer.All.SendInfoMessage("The ducks fly tonight.");
+        //        TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(362).type, TShock.Utils.GetNPCById(362).name, 20, args.Player.TileX, args.Player.TileY, 50, 20);
+        //        DLastCheck = DateTime.UtcNow;
+        //    }
+        //    else
+        //    {
+        //        int CD = config.DuckhuntTimer - DLastCheck.Second;
+        //        args.Player.SendErrorMessage("This command is on cooldown for another {0} seconds.", CD);   
         //    }
         //}
 
@@ -594,17 +593,6 @@ namespace CawAIO
         //    {
         //        args.Player.SendMessage("Duckhunt now: " + ((DuckhuntToggle) ? "Enabled" : "Disabled"), Color.Aquamarine);
         //    }
-        //}
-        //private TShockAPI.DB.Region arenaregion = new TShockAPI.DB.Region();
-
-        //private void spawnducks()
-        //{
-        //    arenaregion = TShock.Regions.GetRegionByName("duckarena");
-        //    int arenaX = arenaregion.Area.X + (arenaregion.Area.Width / 2);
-        //    int arenaY = arenaregion.Area.Y + (arenaregion.Area.Height / 2);
-        //    TSPlayer.All.SendInfoMessage("The ducks fly tonight.");
-        //    TSPlayer.Server.SpawnNPC(TShock.Utils.GetNPCById(362).type, TShock.Utils.GetNPCById(362).name, 20, arenaX, arenaY, (arenaregion.Area.Width / 2), (arenaregion.Area.Height / 2));
-
         //}
 
         #region Bunny Command
@@ -638,7 +626,6 @@ namespace CawAIO
             TSPlayer player = TShock.Players[args.Who];
             if (player == null)
             {
-                args.Handled = true;
                 return;
             }
 
@@ -868,7 +855,7 @@ namespace CawAIO
             public bool SEconomy = false;
             public bool BlockShadowDodgeBuff = false;
             public int BlockShadowDodgeTimerInSeconds = 1;
-            public bool DuckhuntToggle = false;
+            //public bool DuckhuntToggle = false;
             public int GambleCost = 50000;
             public int GambleCooldown = 0;
             public int MonsterGambleCost = 50000;
