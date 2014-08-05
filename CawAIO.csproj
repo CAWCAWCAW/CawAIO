@@ -59,8 +59,12 @@
     <Reference Include="TShockAPI">
       <HintPath>TSRefs\TShockAPI.dll</HintPath>
     </Reference>
-    <Reference Include="Wolfje.Plugins.SEconomy">
-      <HintPath>..\..\..\Desktop\c# projects\REFS\Wolfje.Plugins.SEconomy.dll</HintPath>
+    <Reference Include="Wolfje.Plugins.SEconomy, Version=1.0.12.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\REFS\Wolfje.Plugins.SEconomy.dll</HintPath>
+    </Reference>
+    <Reference Include="Wolfje.Plugins.SEconomy.SEconomyScriptPlugin">
+      <HintPath>..\REFS\Wolfje.Plugins.SEconomy.SEconomyScriptPlugin.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

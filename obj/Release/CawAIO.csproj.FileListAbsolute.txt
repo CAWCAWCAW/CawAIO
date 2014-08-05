@@ -24,3 +24,4 @@ C:\Users\Austin\Documents\GitHub\CawAIO\bin\Release\Wolfje.Plugins.SEconomy.dll
 C:\Users\Austin\Documents\GitHub\CawAIO\obj\Release\CawAIO.csprojResolveAssemblyReference.cache
 C:\Users\Austin\Documents\GitHub\CawAIO\obj\Release\CawAIO.dll
 C:\Users\Austin\Documents\GitHub\CawAIO\obj\Release\CawAIO.pdb
+C:\Users\Austin\Documents\GitHub\CawAIO\bin\Release\Wolfje.Plugins.SEconomy.SEconomyScriptPlugin.dll

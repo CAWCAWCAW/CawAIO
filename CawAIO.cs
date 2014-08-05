@@ -12,6 +12,7 @@ using TerrariaApi;
 using TerrariaApi.Server;
 using TShockAPI.DB;
 using Wolfje.Plugins.SEconomy;
+using Wolfje.Plugins.SEconomy.Journal;
 
 namespace CawAIO
 {
@@ -320,8 +321,8 @@ namespace CawAIO
             Random random = new Random();
             int amount = random.Next(1, 50);
             var Journalpayment = Wolfje.Plugins.SEconomy.Journal.BankAccountTransferOptions.AnnounceToSender;
-            var selectedPlayer = SEconomyPlugin.GetEconomyPlayerByBankAccountNameSafe(args.Player.UserAccountName);
-            var playeramount = selectedPlayer.BankAccount.Balance;
+            var selectedPlayer = SEconomyPlugin.Instance.GetBankAccount(args.Player.UserAccountName);
+            var playeramount = selectedPlayer.Balance;
             var player = Playerlist[args.Player.Index];
             Money moneyamount = -config.MonsterGambleCost;
             Money moneyamount2 = config.MonsterGambleCost;
@@ -351,11 +352,11 @@ namespace CawAIO
                                 TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
                                 TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
                                 args.Player.SendSuccessMessage("You have lost {0} for monster gambling.", moneyamount2);
-                                SEconomyPlugin.WorldAccount.TransferToAsync(selectedPlayer.BankAccount, moneyamount, Journalpayment, string.Format("{0} has been lost for monster gambling", moneyamount2, args.Player.Name), string.Format("CawAIO: " + "Monster Gambling"));
+                                SEconomyPlugin.Instance.WorldAccount.TransferToAsync(selectedPlayer, moneyamount, Journalpayment, string.Format("{0} has been lost for monster gambling", moneyamount2, args.Player.Name), string.Format("CawAIO: " + "Monster Gambling"));
                             }
                             else
                             {
-                                args.Player.SendErrorMessage("You need {0} to gamble, you have {1}.", moneyamount2, selectedPlayer.BankAccount.Balance);
+                                args.Player.SendErrorMessage("You need {0} to gamble, you have {1}.", moneyamount2, selectedPlayer.Balance);
                             }
                         }
                         else
@@ -402,8 +403,8 @@ namespace CawAIO
             Random random = new Random();
             int itemAmount = 0;
             int prefixId = random.Next(1, 83);
-            var UsernameBankAccount = SEconomyPlugin.GetEconomyPlayerByBankAccountNameSafe(args.Player.UserAccountName);
-            var playeramount = UsernameBankAccount.BankAccount.Balance;
+            var UsernameBankAccount = SEconomyPlugin.Instance.GetBankAccount(args.Player.UserAccountName);
+            var playeramount = UsernameBankAccount.Balance;
             var player = Playerlist[args.Player.Index];
             Money amount = -config.GambleCost;
             Money amount2 = config.GambleCost;
@@ -439,7 +440,7 @@ namespace CawAIO
 
                                 args.Player.GiveItemCheck(item.type, item.name, item.width, item.height, itemAmount, prefixId);
 
-                                SEconomyPlugin.WorldAccount.TransferToAsync(UsernameBankAccount.BankAccount, amount,
+                                SEconomyPlugin.Instance.WorldAccount.TransferToAsync(UsernameBankAccount, amount,
                                     Journalpayment, string.Format("{0} has been lost for gambling", amount2, args.Player.Name),
                                     string.Format("CawAIO: " + "Gambling"));
 
@@ -489,7 +490,7 @@ namespace CawAIO
                     else
                     {
                         args.Player.SendErrorMessage("You need {0} to gamble, you have {1}.", amount2,
-                            UsernameBankAccount.BankAccount.Balance);
+                            UsernameBankAccount.Balance);
                     }
                 }
                 else
