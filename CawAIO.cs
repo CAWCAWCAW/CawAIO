@@ -28,7 +28,7 @@ namespace CawAIO
 
         public override Version Version
         {
-            get { return new Version("1.9.3"); }
+            get { return new Version("1.9.4"); }
         }
 
         public override string Name
@@ -353,6 +353,7 @@ namespace CawAIO
                                 TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
                                 args.Player.SendSuccessMessage("You have lost {0} for monster gambling.", moneyamount2);
                                 SEconomyPlugin.Instance.WorldAccount.TransferToAsync(selectedPlayer, moneyamount, Journalpayment, string.Format("{0} has been lost for monster gambling", moneyamount2, args.Player.Name), string.Format("CawAIO: " + "Monster Gambling"));
+                                Log.ConsoleInfo("{0} has spawnned {1} {2}.", args.Player.Name, amount, npcs.name);
                             }
                             else
                             {
@@ -372,6 +373,7 @@ namespace CawAIO
                                 TSPlayer.Server.SpawnNPC(npcs.type, npcs.name, amount, args.Player.TileX, args.Player.TileY, 50, 20);
                                 TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name, npcs.name, amount));
                                 args.Player.SendSuccessMessage("You have lost nothing for monster gambling.");
+                                Log.ConsoleInfo("{0} has spawnned {1} {2}.", args.Player.Name, amount, npcs.name);
                             }
                         }
                     }
@@ -388,6 +390,7 @@ namespace CawAIO
 
                     TSPlayer.All.SendSuccessMessage(string.Format("{0} has randomly spawned {1} {2} time(s).", args.Player.Name,
                         npcs.name, amount));
+                    Log.ConsoleInfo("{0} has spawnned {1} {2}.", args.Player.Name, amount, npcs.name);
                 }
             }
                     else
@@ -613,7 +616,7 @@ namespace CawAIO
             string message = string.Join(" ", args.Parameters);
 
             TShock.Utils.Broadcast(
-                "(Owner Broadcast) " + message, Color.Aqua);
+                "(Owner Broadcast) " + message, Convert.ToByte(config.OwnerBroadcastColorRGB[0]), Convert.ToByte(config.OwnerBroadcastColorRGB[1]), Convert.ToByte(config.OwnerBroadcastColorRGB[2]));
         }
         #endregion
 
@@ -658,131 +661,135 @@ namespace CawAIO
             var warningwords = new List<string>();
             var player = TShock.Players[args.Who];
             var text = args.Text;
-            var user = TShock.Users.GetUserByName(player.UserAccountName);
-            var knownIps = JsonConvert.DeserializeObject<List<string>>(user.KnownIps);
-            if (!args.Text.ToLower().StartsWith("/") || args.Text.ToLower().StartsWith("/w") ||
-                args.Text.ToLower().StartsWith("/r") || args.Text.ToLower().StartsWith("/me") ||
-                args.Text.ToLower().StartsWith("/c") || args.Text.ToLower().StartsWith("/party"))
-            {
-                foreach (string Word in config.BanWords)
-                {
-                    if (player.Group.HasPermission("caw.filterbypass"))
-                    {
-                        args.Handled = false;
-                    }
 
-                    else if (args.Text.ToLower().Contains(Word))
+            if (player == null)
+            {
+                return;
+            }
+
+                    if (!args.Text.ToLower().StartsWith("/") || args.Text.ToLower().StartsWith("/w") ||
+                        args.Text.ToLower().StartsWith("/r") || args.Text.ToLower().StartsWith("/me") ||
+                        args.Text.ToLower().StartsWith("/c") || args.Text.ToLower().StartsWith("/party"))
                     {
-                        if (player.mute)
+                        foreach (string Word in config.BanWords)
                         {
-                            player.SendErrorMessage("You are muted!");
-                            return;
-                        }
-                        else
-                        {
-                            switch (config.ActionForBannedWord)
+                            if (player.Group.HasPermission("caw.filterbypass"))
                             {
-                                case "tempban":
-                                    args.Handled = true;
-                                    if (config.WarningSystem)
+                                args.Handled = false;
+                            }
+
+                            else if (args.Text.ToLower().Contains(Word))
+                            {
+                                if (player.mute)
+                                {
+                                    player.SendErrorMessage("You are muted!");
+                                    return;
+                                }
+                                else
+                                {
+                                    switch (config.ActionForBannedWord)
                                     {
-                                        foreach (var wplayer in Playerlist)
-                                        {
-                                            if (wplayer.WarningCount > config.AmountofWarningBeforeAction)
+                                        case "tempban":
+                                            args.Handled = true;
+                                            if (config.WarningSystem)
                                             {
-                                                TShock.Bans.AddBan(knownIps.Last(), player.Name, player.UUID, config.KickMessage, false, player.UserAccountName, DateTime.UtcNow.AddMinutes(config.BanTimeInMinutes).ToString("m"));
+                                                foreach (var wplayer in Playerlist)
+                                                {
+                                                    if (wplayer.WarningCount > config.AmountofWarningBeforeAction)
+                                                    {
+                                                        TShock.Bans.AddBan(player.IP, player.Name, player.UUID, config.KickMessage, false, player.UserAccountName, DateTime.UtcNow.AddMinutes(config.BanTimeInMinutes).ToString("m"));
+                                                    }
+                                                    else
+                                                    {
+                                                        wplayer.WarningCount += 1;
+                                                        warningwords.Add(Word);
+                                                    }
+                                                }
                                             }
                                             else
                                             {
-                                                wplayer.WarningCount += 1;
-                                                warningwords.Add(Word);
+                                                TShock.Bans.AddBan(player.IP, player.Name, player.UUID, config.KickMessage, false, player.UserAccountName, DateTime.UtcNow.AddMinutes(config.BanTimeInMinutes).ToString("m"));
                                             }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        TShock.Bans.AddBan(knownIps.Last(), player.Name, player.UUID, config.KickMessage, false, player.UserAccountName, DateTime.UtcNow.AddMinutes(config.BanTimeInMinutes).ToString("m"));
-                                    }
-                                        return;
-                                case "ban":
-                                        args.Handled = true;
-                                        if (config.WarningSystem)
-                                        {
-                                            foreach (var wplayer in Playerlist)
+                                            return;
+                                        case "ban":
+                                            args.Handled = true;
+                                            if (config.WarningSystem)
                                             {
-                                                if (wplayer.WarningCount > config.AmountofWarningBeforeAction)
+                                                foreach (var wplayer in Playerlist)
                                                 {
-                                                    TShock.Bans.AddBan(knownIps.Last(), player.Name, player.UUID, config.KickMessage, false, player.UserAccountName);
-                                                }
-                                                else
-                                                {
-                                                    wplayer.WarningCount += 1;
-                                                    warningwords.Add(Word);
+                                                    if (wplayer.WarningCount > config.AmountofWarningBeforeAction)
+                                                    {
+                                                        TShock.Bans.AddBan(player.IP, player.Name, player.UUID, config.KickMessage, false, player.UserAccountName);
+                                                    }
+                                                    else
+                                                    {
+                                                        wplayer.WarningCount += 1;
+                                                        warningwords.Add(Word);
+                                                    }
                                                 }
                                             }
-                                        }
-                                        else
-                                        {
-                                            TShock.Bans.AddBan(knownIps.Last(), player.Name, player.UUID, config.KickMessage, false, player.UserAccountName);
-                                        }
-                                    return;
-                                case "kick":
-                                    args.Handled = true;
-                                    if (config.WarningSystem)
-                                    {
-                                        foreach (var wplayer in Playerlist)
-                                        {
-                                            if (wplayer.WarningCount > config.AmountofWarningBeforeAction)
+                                            else
+                                            {
+                                                TShock.Bans.AddBan(player.IP, player.Name, player.UUID, config.KickMessage, false, player.UserAccountName);
+                                            }
+                                            return;
+                                        case "kick":
+                                            args.Handled = true;
+                                            if (config.WarningSystem)
+                                            {
+                                                foreach (var wplayer in Playerlist)
+                                                {
+                                                    if (wplayer.WarningCount > config.AmountofWarningBeforeAction)
+                                                    {
+                                                        TShock.Utils.Kick(player, config.KickMessage, true, false);
+                                                    }
+                                                    else
+                                                    {
+                                                        wplayer.WarningCount += 1;
+                                                        warningwords.Add(Word);
+                                                    }
+                                                }
+                                            }
+                                            else
                                             {
                                                 TShock.Utils.Kick(player, config.KickMessage, true, false);
                                             }
-                                            else
-                                            {
-                                                wplayer.WarningCount += 1;
-                                                warningwords.Add(Word);
-                                            }
-                                        }
+                                            return;
+                                        case "ignore":
+                                            args.Handled = true;
+                                            ignored.Add(Word);
+                                            break;
+                                        case "censor":
+                                            args.Handled = true;
+                                            text = args.Text;
+                                            text = args.Text.Replace(Word, new string('*', Word.Length));
+                                            string.Format(config.ChatFormat, player.Group.Name, player.Group.Prefix, player.Name, player.Group.Suffix, text, player.Group.R, player.Group.G, player.Group.B);
+                                            //TSPlayer.All.SendMessage("<" + "(" + player.Group.Name + ") " + player.Name + ">" + text, player.Group.R, player.Group.G, player.Group.B);
+                                            //TSPlayer.All.SendMessage(player.Group.Prefix + player.Name + ": " + text, player.Group.R, player.Group.G, player.Group.B);
+                                            return;
+                                        case "donothing":
+                                            args.Handled = false;
+                                            break;
                                     }
-                                    else
-                                    {
-                                        TShock.Utils.Kick(player, config.KickMessage, true, false);
-                                    }
-                                    return;
-                                case "ignore":
-                                    args.Handled = true;
-                                    ignored.Add(Word);
-                                    break;
-                                case "censor":
-                                    args.Handled = true;
-                                    text = args.Text;
-                                    text = args.Text.Replace(Word, new string('*', Word.Length));
-                                    string.Format(config.ChatFormat, player.Group.Name, player.Group.Prefix, player.Name, player.Group.Suffix, text, player.Group.R, player.Group.G, player.Group.B);
-                                    //TSPlayer.All.SendMessage("<" + "(" + player.Group.Name + ") " + player.Name + ">" + text, player.Group.R, player.Group.G, player.Group.B);
-                                    //TSPlayer.All.SendMessage(player.Group.Prefix + player.Name + ": " + text, player.Group.R, player.Group.G, player.Group.B);
-                                    return;
-                                case "donothing":
-                                    args.Handled = false;
-                                    break;
+                                }
                             }
                         }
+                        if (warningwords.Count > 0 && WarningCount < 3)
+                        {
+                            player.SendErrorMessage("Your message has been ignored for saying: " + string.Join(", ", warningwords));
+                            player.SendErrorMessage("Your warning count is now: {0}. After {1} warnings you will be {2}", WarningCount, config.AmountofWarningBeforeAction, config.ActionForBannedWord.ToString());
+                        }
+                        if (ignored.Count > 0)
+                        {
+                            player.SendErrorMessage("Your message has been ignored for saying: " + string.Join(", ", ignored));
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        args.Handled = false;
                     }
                 }
-                if (warningwords.Count > 0 && WarningCount < 3)
-                {
-                    player.SendErrorMessage("Your message has been ignored for saying: " + string.Join(", ", warningwords));
-                    player.SendErrorMessage("Your warning count is now: {0}. After {1} warnings you will be {2}", WarningCount, config.AmountofWarningBeforeAction, config.ActionForBannedWord.ToString());
-                }
-                if (ignored.Count > 0)
-                {
-                    player.SendErrorMessage("Your message has been ignored for saying: " + string.Join(", ", ignored));
-                    return;
-                }
-            }
-            else
-            {
-                args.Handled = false;
-            }
-        }
         #endregion
 
         #region Create Config File
@@ -848,6 +855,7 @@ namespace CawAIO
         {
             public string ActionForBannedWord = "ignore";
             public string ChatFormat = "[{0}]{2}{3}{4}: {5}";
+            public float[] OwnerBroadcastColorRGB = new float[3];
             public bool WarningSystem = true;
             public int AmountofWarningBeforeAction = 3;
             public string[] BanWords = { "yolo", "swag", "can i be staff", "can i be admin" };
