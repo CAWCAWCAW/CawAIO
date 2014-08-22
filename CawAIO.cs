@@ -28,7 +28,7 @@ namespace CawAIO
 
         public override Version Version
         {
-            get { return new Version("1.9.4"); }
+            get { return new Version("1.9.5"); }
         }
 
         public override string Name
@@ -678,7 +678,7 @@ namespace CawAIO
                                 args.Handled = false;
                             }
 
-                            else if (args.Text.ToLower().Contains(Word))
+                            else if (args.Text.ToLower().Equals(Word))
                             {
                                 if (player.mute)
                                 {
@@ -695,16 +695,21 @@ namespace CawAIO
                                             {
                                                 foreach (var wplayer in Playerlist)
                                                 {
-                                                    if (wplayer.WarningCount > config.AmountofWarningBeforeAction)
+                                                    if (wplayer == null)
                                                     {
-                                                        TShock.Bans.AddBan(player.IP, player.Name, player.UUID, config.KickMessage, false, player.UserAccountName, DateTime.UtcNow.AddMinutes(config.BanTimeInMinutes).ToString("m"));
+                                                        return;
                                                     }
-                                                    else
-                                                    {
-                                                        wplayer.WarningCount += 1;
-                                                        warningwords.Add(Word);
+                                                        if (wplayer.WarningCount >= config.AmountofWarningBeforeAction)
+                                                        {
+                                                            TShock.Bans.AddBan(player.IP, player.Name, player.UUID, config.KickMessage, false, player.UserAccountName, DateTime.UtcNow.AddMinutes(config.BanTimeInMinutes).ToString("m"));
+                                                        }
+                                                        else
+                                                        {
+                                                            wplayer.WarningCount += 1;
+                                                            warningwords.Add(Word);
+                                                            player.SendErrorMessage("You have said a banned word: " + string.Join(" ", warningwords) + " You will be temp-banned in " + (config.AmountofWarningBeforeAction - wplayer.WarningCount) + " more incidents.");
+                                                        }
                                                     }
-                                                }
                                             }
                                             else
                                             {
@@ -717,15 +722,20 @@ namespace CawAIO
                                             {
                                                 foreach (var wplayer in Playerlist)
                                                 {
-                                                    if (wplayer.WarningCount > config.AmountofWarningBeforeAction)
+                                                    if (wplayer == null)
                                                     {
-                                                        TShock.Bans.AddBan(player.IP, player.Name, player.UUID, config.KickMessage, false, player.UserAccountName);
+                                                        return;
                                                     }
-                                                    else
-                                                    {
-                                                        wplayer.WarningCount += 1;
-                                                        warningwords.Add(Word);
-                                                    }
+                                                        if (wplayer.WarningCount >= config.AmountofWarningBeforeAction)
+                                                        {
+                                                            TShock.Bans.AddBan(player.IP, player.Name, player.UUID, config.KickMessage, false, player.UserAccountName);
+                                                        }
+                                                        else
+                                                        {
+                                                            wplayer.WarningCount += 1;
+                                                            warningwords.Add(Word);
+                                                            player.SendErrorMessage("You have said a banned word: " + string.Join(" ", warningwords) + " You will be banned in " + (config.AmountofWarningBeforeAction - wplayer.WarningCount) + " more incidents.");
+                                                        }
                                                 }
                                             }
                                             else
@@ -739,15 +749,20 @@ namespace CawAIO
                                             {
                                                 foreach (var wplayer in Playerlist)
                                                 {
-                                                    if (wplayer.WarningCount > config.AmountofWarningBeforeAction)
+                                                    if (wplayer == null)
                                                     {
-                                                        TShock.Utils.Kick(player, config.KickMessage, true, false);
+                                                        return;
                                                     }
-                                                    else
-                                                    {
-                                                        wplayer.WarningCount += 1;
-                                                        warningwords.Add(Word);
-                                                    }
+                                                        if (wplayer.WarningCount >= config.AmountofWarningBeforeAction)
+                                                        {
+                                                            TShock.Utils.Kick(player, config.KickMessage, true, false);
+                                                        }
+                                                        else
+                                                        {
+                                                            wplayer.WarningCount += 1;
+                                                            warningwords.Add(Word);
+                                                            player.SendErrorMessage("You have said a banned word: " + string.Join(" ", warningwords) + " You will be kicked in " + (config.AmountofWarningBeforeAction - wplayer.WarningCount) + " more incidents.");
+                                                        }
                                                 }
                                             }
                                             else
